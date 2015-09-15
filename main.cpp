@@ -1,12 +1,19 @@
 #include <QApplication>
+#include <QQmlContext>
+#include <QAbstractItemModel>
 #include <QQmlApplicationEngine>
+#include "dbmanager.h"
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+	QApplication app(argc, argv);
 
-    QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+	DBManager dbm;
+	QAbstractItemModel *model = dbm.categoriesModel();
 
-    return app.exec();
+	QQmlApplicationEngine engine;
+	engine.rootContext()->setContextProperty("catModel", model);
+	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+
+	return app.exec();
 }

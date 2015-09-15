@@ -1,8 +1,16 @@
 TEMPLATE = app
 
-QT += qml quick widgets
+QT += qml quick widgets sql
 
-SOURCES += main.cpp
+OBJECTS_DIR = obj
+RCC_DIR = obj
+MOC_DIR = obj
+UI_DIR = obj
+
+DESTDIR = bin
+
+SOURCES += main.cpp \
+	dbmanager.cpp
 
 RESOURCES += qml.qrc
 
@@ -11,3 +19,9 @@ QML_IMPORT_PATH =
 
 # Default rules for deployment.
 include(deployment.pri)
+
+HEADERS += \
+	dbmanager.h
+
+DISTFILES += \
+    bin/wimm.db
