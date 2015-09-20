@@ -10,7 +10,7 @@ UI_DIR = obj
 DESTDIR = bin
 
 SOURCES += main.cpp \
-	dbmanager.cpp
+    wimmmodel.cpp
 
 RESOURCES += qml.qrc
 
@@ -21,7 +21,7 @@ QML_IMPORT_PATH =
 include(deployment.pri)
 
 HEADERS += \
-	dbmanager.h
+    wimmmodel.h
 
 DISTFILES += \
     bin/wimm.db

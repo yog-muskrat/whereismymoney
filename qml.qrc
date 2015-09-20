@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>MonthDelegate.qml</file>
     </qresource>
 </RCC>

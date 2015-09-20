@@ -1,18 +1,21 @@
 #include <QApplication>
 #include <QQmlContext>
-#include <QAbstractItemModel>
 #include <QQmlApplicationEngine>
-#include "dbmanager.h"
+#include <QDebug>
+
+
+#include "wimmmodel.h"
 
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 
-	DBManager dbm;
-	QAbstractItemModel *model = dbm.categoriesModel();
+	QList<QObject*> model = DataLoader::loadData();
 
 	QQmlApplicationEngine engine;
-	engine.rootContext()->setContextProperty("catModel", model);
+
+	engine.rootContext()->setContextProperty("wimmmodel", QVariant::fromValue(model));
+
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
 	return app.exec();
