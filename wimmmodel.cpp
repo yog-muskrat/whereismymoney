@@ -6,14 +6,18 @@
 #include <QSqlError>
 #include <QDebug>
 
-MoneyModel::MoneyModel(QObject *parent) : QAbstractListModel(parent)
+MoneyModel::MoneyModel(QObject *parent)
+#ifdef QMLVERSION
+	: QAbstractListModel(parent)
+#else
+	: QAbstractTableModel(parent)
+#endif
 {
-
+	mDirty = false;
 }
 
 MoneyModel::~MoneyModel()
 {
-
 }
 
 void MoneyModel::addMoneyData(MoneyData md)
@@ -23,10 +27,6 @@ void MoneyModel::addMoneyData(MoneyData md)
 	endInsertRows();
 }
 
-int MoneyModel::rowCount(const QModelIndex &parent) const
-{
-	return mData.count();
-}
 
 QVariant MoneyModel::data(const QModelIndex &index, int role) const
 {
@@ -37,8 +37,9 @@ QVariant MoneyModel::data(const QModelIndex &index, int role) const
 		return QVariant();
 	}
 
-	const MoneyData &md = mData[row];
+#ifdef QMLVERSION
 
+	const MoneyData &md = mData[row];
 	if(role == Qt::DisplayRole)
 	{
 		return md.categoryName;
@@ -72,6 +73,19 @@ QVariant MoneyModel::data(const QModelIndex &index, int role) const
 		return md.secondHalfOutcome;
 	}
 
+#else
+
+	if(role == Qt::EditRole)
+	{
+		return editRole(index);
+	}
+	else if(role == Qt::DisplayRole)
+	{
+		return displayRole(index);
+	}
+
+#endif
+
 	return QVariant();
 }
 
@@ -89,6 +103,127 @@ QHash<int, QByteArray> MoneyModel::roleNames() const
 	return result;
 }
 
+QVariant MoneyModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+#ifdef QMLVERSION
+	return QAbstractListModel::headerData(section, orientation, role);
+#else
+
+	if(orientation != Qt::Horizontal || role != Qt::DisplayRole)
+	{
+		return QVariant();
+	}
+
+	if(section == COL_RecordId)
+	{
+		return "БД";
+	}
+	else if(section == COL_Category)
+	{
+		return "Категория";
+	}
+	else if(section == COL_FirstHalfIn)
+	{
+		return "+ (I)";
+	}
+	else if(section == COL_FirstHalfOut)
+	{
+		return "- (I)";
+	}
+	else if(section == COL_SecondHalfIn)
+	{
+		return "+ (II)";
+	}
+	else if(section == COL_SecondHalfOut)
+	{
+		return "- (II)";
+	}
+
+	return QAbstractTableModel::headerData(section, orientation, role);
+#endif
+}
+
+QVariant MoneyModel::displayRole(const QModelIndex &index) const
+{
+	int col = index.column();
+	const MoneyData &md = mData[index.row()];
+
+	if(col == COL_RecordId)
+	{
+		return md.recordId;
+	}
+	else if(col == COL_Category)
+	{
+		QString result = md.categoryName;
+		if(md.recordId < 0)
+		{
+			result += " *";
+		}
+
+		return result;
+	}
+	else if(col == COL_FirstHalfIn)
+	{
+		return md.firstHalfIncome;
+	}
+	else if(col == COL_SecondHalfIn)
+	{
+		return md.secondHalfIncome;
+	}
+	else if(col == COL_FirstHalfOut)
+	{
+		return md.firstHalfOutcome;
+	}
+	else if(col == COL_SecondHalfOut)
+	{
+		return md.secondHalfOutcome;
+	}
+
+	return QVariant();
+}
+
+QVariant MoneyModel::editRole(const QModelIndex &index) const
+{
+	int col = index.column();
+	const MoneyData &md = mData[index.row()];
+
+	if(col == COL_RecordId)
+	{
+		return md.recordId;
+	}
+	else if(col == COL_Category)
+	{
+		return md.categoryId;
+	}
+	else if(col == COL_FirstHalfIn)
+	{
+		return md.firstHalfIncome;
+	}
+	else if(col == COL_SecondHalfIn)
+	{
+		return md.secondHalfIncome;
+	}
+	else if(col == COL_FirstHalfOut)
+	{
+		return md.firstHalfOutcome;
+	}
+	else if(col == COL_SecondHalfOut)
+	{
+		return md.secondHalfOutcome;
+	}
+
+	return QVariant();
+}
+
+bool MoneyModel::submit()
+{
+	return true;
+}
+
+void MoneyModel::revert()
+{
+}
+
 ///****
 
 WIMMObject::WIMMObject(QObject *parent) : QObject(parent), mId(-1), mYear(-1), mMonth(-1)
@@ -103,10 +238,7 @@ WIMMObject::~WIMMObject()
 	mMoneyModel->deleteLater();
 }
 
-int WIMMObject::id() const
-{
-	return mId;
-}
+
 
 void WIMMObject::setId(int id)
 {
@@ -115,11 +247,6 @@ void WIMMObject::setId(int id)
 		mId = id;
 		emit idChanged();
 	}
-}
-
-int WIMMObject::year() const
-{
-	return mYear;
 }
 
 void WIMMObject::setYear(int year)
@@ -131,11 +258,6 @@ void WIMMObject::setYear(int year)
 	}
 }
 
-int WIMMObject::month() const
-{
-	return mMonth;
-}
-
 void WIMMObject::setMonth(int month)
 {
 	if(mMonth != month )
@@ -145,17 +267,13 @@ void WIMMObject::setMonth(int month)
 	}
 }
 
-MoneyModel * WIMMObject::moneyModel()
-{
-	return mMoneyModel;
-}
-
 void WIMMObject::addMoneyData(MoneyData md)
 {
 	Q_ASSERT(mMoneyModel);
 	mMoneyModel->addMoneyData( md );
 	emit moneyModelChanged();
 }
+
 
 ///****
 
@@ -202,6 +320,11 @@ QList<QObject *> DataLoader::loadData()
 	return objs;
 }
 
+WIMMModel *DataLoader::loadModel()
+{
+	return new WIMMModel();
+}
+
 
 bool DataLoader::loadMoneyData(WIMMObject *obj)
 {
@@ -237,4 +360,90 @@ bool DataLoader::loadMoneyData(WIMMObject *obj)
 	}
 
 	return true;
+}
+
+
+WIMMModel::WIMMModel(QObject *parent) : QAbstractListModel(parent)
+{
+	mObjects = DataLoader::loadData();
+	mIsDirty = false;
+}
+
+WIMMModel::~WIMMModel()
+{
+	qDeleteAll(mObjects);
+}
+
+WIMMObject *WIMMModel::objectAt(const QModelIndex &index)
+{
+	return qobject_cast<WIMMObject*>(mObjects[index.row()]);
+}
+
+bool WIMMModel::appendObject(WIMMObject *obj)
+{
+	if(mObjects.contains(obj))
+	{
+		return false;
+	}
+
+	int row = rowCount();
+
+	beginInsertRows(QModelIndex(), row, row);
+	mObjects << obj;
+	mIsDirty = true;
+	endInsertRows();
+
+	return true;
+}
+
+int WIMMModel::rowCount(const QModelIndex &parent) const
+{
+	Q_UNUSED(parent);
+	return mObjects.count();
+}
+
+QVariant WIMMModel::data(const QModelIndex &index, int role) const
+{
+	Q_ASSERT(index.row() >=0 && index.row() <= rowCount());
+
+	if(role == Qt::DisplayRole)
+	{
+		WIMMObject *obj = qobject_cast<WIMMObject*>( mObjects[index.row()] );
+		Q_ASSERT(obj);
+
+		QString string = QString("%0 %1").arg(obj->year()).arg(QDate::longMonthName(obj->month(), QDate::StandaloneFormat));
+		if(obj->id() < 0 || obj->moneyModel()->isDirty())
+		{
+			string += " *";
+		}
+		return string;
+	}
+
+	return QVariant();
+}
+
+
+
+bool WIMMModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+	beginRemoveRows(parent, row, row + count -1 );
+
+	for(int i = 0; i < count; ++i)
+	{
+		delete mObjects.takeAt(row);
+	}
+
+	endRemoveRows();
+
+	return true;
+}
+
+
+bool WIMMModel::submit()
+{
+	return true;
+}
+
+void WIMMModel::revert()
+{
 }

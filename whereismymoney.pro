@@ -7,10 +7,15 @@ RCC_DIR = obj
 MOC_DIR = obj
 UI_DIR = obj
 
+# Дефайн для запуска QML-версии приложения
+#DEFINES += QMLVERSION
+
 DESTDIR = bin
 
 SOURCES += main.cpp \
-    wimmmodel.cpp
+	wimmmodel.cpp \
+	mainwindow.cpp \
+    addmonthdialog.cpp
 
 RESOURCES += qml.qrc
 
@@ -21,7 +26,13 @@ QML_IMPORT_PATH =
 include(deployment.pri)
 
 HEADERS += \
-    wimmmodel.h
+	wimmmodel.h \
+	mainwindow.h \
+    addmonthdialog.h
 
 DISTFILES += \
-    bin/wimm.db
+	bin/wimm.db
+
+FORMS += \
+	mainwindow.ui \
+    addmonthdialog.ui

@@ -1,5 +1,5 @@
-import QtQuick 2.4
-import QtQuick.Controls 1.2
+import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.1
 
 Rectangle {
@@ -30,24 +30,36 @@ Rectangle {
                 width: 100
             }
             TableViewColumn {
-                title: "Первая половина +"
+                title: "+ (I)"
                 role: "firstHalfIncome"
                 width: 100
+                delegate: TextField {
+                    text: styleData.value
+                }
             }
             TableViewColumn {
-                title: "Первая половина -"
+                title: "- (I)"
                 role: "firstHalfOutcome"
                 width: 100
+                delegate: TextField {
+                    text: styleData.value
+                }
             }
             TableViewColumn {
-                title: "Вторая половина +"
+                title: "+ (II)"
                 role: "secondHalfIncome"
                 width: 100
+                delegate: TextField {
+                    text: styleData.value
+                }
             }
             TableViewColumn {
-                title: "Вторая половина -"
+                title: "- (II)"
                 role: "secondHalfOutcome"
                 width: 100
+                delegate: TextField {
+                    text: styleData.value
+                }
             }
         }
 
