@@ -17,7 +17,7 @@ WIMMModel *SqlTools::loadModel()
 	return model;
 }
 
-QList<GroupItem *> SqlTools::loadSummary(QList<int> months)
+QList<GroupItem *> SqlTools::loadSummary()
 {
 	QList<GroupItem*> result;
 
@@ -49,20 +49,8 @@ QList<GroupItem *> SqlTools::loadSummary(QList<int> months)
 					  "c.name AS category_name, "
 					  "c.id AS category_id "
 					  "FROM money m JOIN categories c ON m.category_id = c.id "
-					  "WHERE category_group=:group";
-		if(!months.isEmpty())
-		{
-			QStringList where;
-
-			foreach(int id, months)
-			{
-				where << QString::number(id);
-			}
-
-			sql += QString(" AND month_id IN (%0)").arg(where.join(", "));
-		}
-
-		sql += " GROUP BY c.name, c.id ORDER BY c.pos";
+					  "WHERE category_group=:group "
+					  "GROUP BY c.name, c.id ORDER BY c.pos";
 
 		moneyQuery.prepare(sql);
 		moneyQuery.bindValue(":group", group->id());

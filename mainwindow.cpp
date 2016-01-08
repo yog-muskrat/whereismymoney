@@ -107,8 +107,6 @@ void MainWindow::onSelectionChanged()
 
 		ui->treeView->resizeColumnToContents(i);
 	}
-
-	calcTotals();
 }
 
 void MainWindow::on_pbAddMonth_clicked()
@@ -201,28 +199,83 @@ void MainWindow::calcTotals()
 {
 	double income = 0;
 	double outcome = 0;
-	double left = 0;
 
-	QList<int> months;
+	ui->summaryTree->clear();
+	ui->summaryTree->setColumnCount(4);
+	ui->summaryTree->setHeaderLabels( QStringList() << "Категория" << QChar(0x002b) << QChar(0x2212) << "=");
+	QFont f = QApplication::font();
+	f.setBold(true);
+	f.setPointSize( f.pointSize() + 1 );
+	ui->summaryTree->headerItem()->setFont(0, f);
+	ui->summaryTree->headerItem()->setFont(1, f);
+	ui->summaryTree->headerItem()->setFont(2, f);
+	ui->summaryTree->headerItem()->setFont(3, f);
+	ui->summaryTree->headerItem()->setTextAlignment(0, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(1, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(3, Qt::AlignCenter);
 
-	for(int i = 0; i < pFilterModel->rowCount(); ++i)
+	QList<GroupItem*> items = SqlTools::loadSummary();
+
+	foreach(GroupItem* group, items)
 	{
-		income += pFilterModel->index(i, WIMMModel::COL_FirstHalfIn).data(Qt::EditRole).toDouble();
-		income += pFilterModel->index(i, WIMMModel::COL_SecondHalfIn).data(Qt::EditRole).toDouble();
+		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(ui->summaryTree);
+		groupTreeItem->setText(0, group->name());
 
-		outcome += pFilterModel->index(i, WIMMModel::COL_FirstHalfOut).data(Qt::EditRole).toDouble();
-		outcome += pFilterModel->index(i, WIMMModel::COL_SecondHalfOut).data(Qt::EditRole).toDouble();
+		double groupIncome = group->value(WIMMItem::FirstIn) + group->value(WIMMItem::SecondIn);
+		double groupOutcome = group->value(WIMMItem::FirstOut) + group->value(WIMMItem::SecondOut);
+		double groupEst= groupIncome - groupOutcome;
 
-		months << pFilterModel->index(i, WIMMModel::COL_DbId).data().toInt();
+		income += groupIncome;
+		outcome += groupOutcome;
+
+		groupTreeItem->setText(1, Tools::moneyString( groupIncome));
+		groupTreeItem->setText(2, Tools::moneyString( groupOutcome));
+		groupTreeItem->setText(3, Tools::moneyString( groupEst));
+
+		groupTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
+		groupTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
+		groupTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
+
+		QFont f = groupTreeItem->font(0);
+		f.setBold(true);
+		groupTreeItem->setFont(0, f);
+		groupTreeItem->setFont(1, f);
+		groupTreeItem->setFont(2, f);
+		groupTreeItem->setFont(3, f);
+
+		foreach(CategoryItem* category, group->categories())
+		{
+			QTreeWidgetItem *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
+			categoryTreeItem->setText(0, category->name());
+
+			double categoryIncome = category->value(WIMMItem::FirstIn) + category->value(WIMMItem::SecondIn);
+			double categoryOutcome = category->value(WIMMItem::FirstOut) + category->value(WIMMItem::SecondOut);
+			double categoryEst = categoryIncome - categoryOutcome;
+
+			categoryTreeItem->setText(1, Tools::moneyString( categoryIncome ));
+			categoryTreeItem->setText(2, Tools::moneyString( categoryOutcome ));
+			categoryTreeItem->setText(3, Tools::moneyString( categoryEst ));
+
+			categoryTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
+			categoryTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
+			categoryTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
+		}
 	}
 
-	left = income - outcome;
+	double left = income - outcome;
 
 	ui->lblIncome->setText(QChar(0x002b)+Tools::moneyString(income));
 	ui->lblOutcome->setText(QChar(0x2212)+Tools::moneyString(outcome));
 	ui->lblEst->setText(Tools::moneyString(left));
 
-	fillTotalsTree(months);
+	ui->summaryTree->expandAll();
+	ui->summaryTree->resizeColumnToContents(0);
+	ui->summaryTree->resizeColumnToContents(1);
+	ui->summaryTree->resizeColumnToContents(2);
+
+	qDeleteAll(items);
+	items.clear();
 }
 
 void MainWindow::onMenuRequested(const QPoint &p)
@@ -288,75 +341,4 @@ void MainWindow::createMenu()
 {
 	pMenu = new QMenu(this);
 	pMenu->addAction(QIcon(":comment"), "Комментарий", this, SLOT(onEditComment()));
-}
-
-void MainWindow::fillTotalsTree(QList<int> months)
-{
-	ui->summaryTree->clear();
-	ui->summaryTree->setColumnCount(4);
-	ui->summaryTree->setHeaderLabels( QStringList() << "Категория" << QChar(0x002b) << QChar(0x2212) << "=");
-	QFont f = QApplication::font();
-	f.setBold(true);
-	f.setPointSize( f.pointSize() + 1 );
-	ui->summaryTree->headerItem()->setFont(0, f);
-	ui->summaryTree->headerItem()->setFont(1, f);
-	ui->summaryTree->headerItem()->setFont(2, f);
-	ui->summaryTree->headerItem()->setFont(3, f);
-	ui->summaryTree->headerItem()->setTextAlignment(0, Qt::AlignCenter);
-	ui->summaryTree->headerItem()->setTextAlignment(1, Qt::AlignCenter);
-	ui->summaryTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
-	ui->summaryTree->headerItem()->setTextAlignment(3, Qt::AlignCenter);
-
-	QList<GroupItem*> items = SqlTools::loadSummary( months );
-
-	foreach(GroupItem* group, items)
-	{
-		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(ui->summaryTree);
-		groupTreeItem->setText(0, group->name());
-
-		double groupIncome = group->value(WIMMItem::FirstIn) + group->value(WIMMItem::SecondIn);
-		double groupOutcome = group->value(WIMMItem::FirstOut) + group->value(WIMMItem::SecondOut);
-		double groupEst= groupIncome - groupOutcome;
-
-		groupTreeItem->setText(1, Tools::moneyString( groupIncome));
-		groupTreeItem->setText(2, Tools::moneyString( groupOutcome));
-		groupTreeItem->setText(3, Tools::moneyString( groupEst));
-
-		groupTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
-		groupTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
-		groupTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
-
-		QFont f = groupTreeItem->font(0);
-		f.setBold(true);
-		groupTreeItem->setFont(0, f);
-		groupTreeItem->setFont(1, f);
-		groupTreeItem->setFont(2, f);
-		groupTreeItem->setFont(3, f);
-
-		foreach(CategoryItem* category, group->categories())
-		{
-			QTreeWidgetItem *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
-			categoryTreeItem->setText(0, category->name());
-
-			double categoryIncome = category->value(WIMMItem::FirstIn) + category->value(WIMMItem::SecondIn);
-			double categoryOutcome = category->value(WIMMItem::FirstOut) + category->value(WIMMItem::SecondOut);
-			double categoryEst = categoryIncome - categoryOutcome;
-
-			categoryTreeItem->setText(1, Tools::moneyString( categoryIncome ));
-			categoryTreeItem->setText(2, Tools::moneyString( categoryOutcome ));
-			categoryTreeItem->setText(3, Tools::moneyString( categoryEst ));
-
-			categoryTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
-			categoryTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
-			categoryTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
-		}
-	}
-
-	ui->summaryTree->expandAll();
-	ui->summaryTree->resizeColumnToContents(0);
-	ui->summaryTree->resizeColumnToContents(1);
-	ui->summaryTree->resizeColumnToContents(2);
-
-	qDeleteAll(items);
-	items.clear();
 }

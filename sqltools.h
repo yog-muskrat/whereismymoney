@@ -17,7 +17,7 @@ class SqlTools
 {
 public:
 	static WIMMModel* loadModel();
-	static QList<GroupItem*> loadSummary(QList<int> months);
+	static QList<GroupItem*> loadSummary();
 
 	static bool monthRecordExists(int year, int month);
 	static MonthItem *addMonthRecord(int year, int month);

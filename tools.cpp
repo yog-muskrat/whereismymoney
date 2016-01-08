@@ -18,5 +18,5 @@ QString Tools::capitalize(const QString &string)
 
 QString Tools::moneyString(const double amount)
 {
-	return QLocale::system().toCurrencyString(amount, QChar(0x20bd));
+	return QLocale::system().toCurrencyString(amount, /*QChar(0x20bd)*/ " ");
 }

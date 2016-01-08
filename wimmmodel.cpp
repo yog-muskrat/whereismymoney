@@ -424,7 +424,7 @@ QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int rol
 		}
 		else if(section == COL_SecondHalfIn)
 		{
-			return QString("%0 (II").arg(QChar(0x002b));
+			return QString("%0 (II)").arg(QChar(0x002b));
 		}
 		else if(section == COL_SecondHalfOut)
 		{
