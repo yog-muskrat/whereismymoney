@@ -6,10 +6,16 @@
 #include "sqltools.h"
 #include "wimmmodel.h"
 #include "addmonthdialog.h"
+#include "wimmfiltermodel.h"
 #include "categorieseditor.h"
 
+#include <QMenu>
 #include <QDate>
+#include <QDebug>
+#include <QLocale>
+#include <QSettings>
 #include <QMessageBox>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -29,12 +35,47 @@ MainWindow::MainWindow(QWidget *parent) :
 	pModel = SqlTools::loadModel();
 	pModel->setParent(this);
 
+	pFilterModel = new WIMMFilterModel(this);
+	pFilterModel->setSourceModel(pModel);
+	pFilterModel->setDynamicSortFilter(true);
+
 	ui->listView->setModel(pModel);
 	ui->listView->setModelColumn(WIMMModel::COL_Title);
+	ui->listView->setSelectionBehavior( QListView::SelectRows );
+	ui->listView->setSelectionMode( QListView::ExtendedSelection );
 
-	ui->treeView->setModel(pModel);
+	ui->treeView->setModel(pFilterModel);
 	ui->treeView->setColumnHidden(WIMMModel::COL_DbId, true);
 	ui->treeView->resizeColumnToContents(WIMMModel::COL_Title);
+	ui->treeView->setContextMenuPolicy( Qt::CustomContextMenu );
+
+	QPalette p = ui->lblIncome->palette();
+	p.setColor( QPalette::Foreground, QColor(0, 84, 0));
+	ui->lblIncome->setPalette(p);
+
+	p.setColor( QPalette::Foreground, QColor(84, 0, 0));
+	ui->lblOutcome->setPalette(p);
+
+	p.setColor( QPalette::Foreground, QColor(0, 0, 84));
+	ui->lblEst->setPalette(p);
+
+	calcTotals();
+
+	createMenu();
+
+	connect(ui->listView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(onSelectionChanged()));
+	connect(pFilterModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(calcTotals()));
+	connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(onMenuRequested(QPoint)));
+
+	int year = QDate::currentDate().year();
+	int month = QDate::currentDate().month();
+
+	QModelIndex idx = pModel->monthIndex(year, month);
+
+	if(idx.isValid())
+	{
+		ui->listView->setCurrentIndex(idx);
+	}
 }
 
 MainWindow::~MainWindow()
@@ -43,15 +84,31 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::on_listView_clicked(const QModelIndex &index)
+void MainWindow::onSelectionChanged()
 {
-	ui->treeView->setRootIndex(index);
-	ui->treeView->resizeColumnToContents( WIMMModel::COL_Title);
 
-	for(int i = 0; i < pModel->rowCount(index); ++i)
+	QModelIndexList idxs = ui->listView->selectionModel()->selectedRows(WIMMModel::COL_Title);
+
+	QList<int> filter;
+
+	foreach(const QModelIndex &idx, idxs)
 	{
-		ui->treeView->expand( index.child(i, 0));
+		filter << pModel->monthId(idx);
 	}
+
+	pFilterModel->setMonthsFilter(filter);
+	ui->treeView->expandAll();
+	for(int i = 0; i < ui->treeView->model()->columnCount(); ++i)
+	{
+		if(ui->treeView->isColumnHidden(i))
+		{
+			continue;
+		}
+
+		ui->treeView->resizeColumnToContents(i);
+	}
+
+	calcTotals();
 }
 
 void MainWindow::on_pbAddMonth_clicked()
@@ -111,7 +168,7 @@ void MainWindow::on_pbRemoveMonth_clicked()
 		return;
 	}
 
-	pModel->removeMonthById(id);
+	pModel->removeMonth(id);
 }
 
 void MainWindow::on_pbEditCategories_clicked()
@@ -122,5 +179,184 @@ void MainWindow::on_pbEditCategories_clicked()
 		return;
 	}
 
-	///TODO: Перезагрузить модель.
+	QModelIndex idx = ui->listView->currentIndex();
+
+	int id = pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
+
+	pModel->clear();
+	pModel->addMonths( SqlTools::loadMonths() );
+
+	if(id > 0)
+	{
+		QModelIndex newIndex = pModel->monthIndex( id);
+		if(!newIndex.isValid())
+		{
+			return;
+		}
+		ui->listView->setCurrentIndex( newIndex );
+	}
+}
+
+void MainWindow::calcTotals()
+{
+	double income = 0;
+	double outcome = 0;
+	double left = 0;
+
+	QList<int> months;
+
+	for(int i = 0; i < pFilterModel->rowCount(); ++i)
+	{
+		income += pFilterModel->index(i, WIMMModel::COL_FirstHalfIn).data(Qt::EditRole).toDouble();
+		income += pFilterModel->index(i, WIMMModel::COL_SecondHalfIn).data(Qt::EditRole).toDouble();
+
+		outcome += pFilterModel->index(i, WIMMModel::COL_FirstHalfOut).data(Qt::EditRole).toDouble();
+		outcome += pFilterModel->index(i, WIMMModel::COL_SecondHalfOut).data(Qt::EditRole).toDouble();
+
+		months << pFilterModel->index(i, WIMMModel::COL_DbId).data().toInt();
+	}
+
+	left = income - outcome;
+
+	ui->lblIncome->setText(QChar(0x002b)+Tools::moneyString(income));
+	ui->lblOutcome->setText(QChar(0x2212)+Tools::moneyString(outcome));
+	ui->lblEst->setText(Tools::moneyString(left));
+
+	fillTotalsTree(months);
+}
+
+void MainWindow::onMenuRequested(const QPoint &p)
+{
+	QModelIndex idx = ui->treeView->indexAt(p);
+
+
+	if(!idx.isValid())
+	{
+		return;
+	}
+
+	QModelIndex parentIndex = pFilterModel->mapToSource(idx);
+
+	if(parentIndex.isValid() && pModel->hasComment(parentIndex))
+	{
+		ui->treeView->setCurrentIndex(idx);
+		pMenu->exec( ui->treeView->mapToGlobal(p) );
+	}
+}
+
+void MainWindow::onEditComment()
+{
+	QModelIndex idx = pFilterModel->mapToSource( ui->treeView->currentIndex() );
+
+	Q_ASSERT(pModel->hasComment(idx));
+
+	QString oldComment = pModel->comment(idx);
+
+	bool ok = false;
+	QString newComment = QInputDialog::getText(this, "Комментарий", "Укажите комментарий", QLineEdit::Normal, oldComment, &ok);
+
+	if(!ok || newComment == oldComment)
+	{
+		return;
+	}
+
+	pModel->setComment(idx, newComment);
+}
+
+void MainWindow::closeEvent(QCloseEvent *e)
+{
+	QSettings set("mudbay", "wimm");
+	set.setValue("geometry", saveGeometry());
+	set.setValue("splitter", ui->splitter->saveState());
+	set.setValue("summary", ui->pbSummary->isChecked());
+
+	QMainWindow::closeEvent(e);
+}
+
+void MainWindow::showEvent(QShowEvent *e)
+{
+	QSettings set("mudbay", "wimm");
+	restoreGeometry( set.value("geometry").toByteArray());
+	ui->splitter->restoreState(set.value("splitter").toByteArray());
+	ui->pbSummary->setChecked( set.value("summary", true).toBool());
+
+	QMainWindow::showEvent(e);
+
+}
+
+void MainWindow::createMenu()
+{
+	pMenu = new QMenu(this);
+	pMenu->addAction(QIcon(":comment"), "Комментарий", this, SLOT(onEditComment()));
+}
+
+void MainWindow::fillTotalsTree(QList<int> months)
+{
+	ui->summaryTree->clear();
+	ui->summaryTree->setColumnCount(4);
+	ui->summaryTree->setHeaderLabels( QStringList() << "Категория" << QChar(0x002b) << QChar(0x2212) << "=");
+	QFont f = QApplication::font();
+	f.setBold(true);
+	f.setPointSize( f.pointSize() + 1 );
+	ui->summaryTree->headerItem()->setFont(0, f);
+	ui->summaryTree->headerItem()->setFont(1, f);
+	ui->summaryTree->headerItem()->setFont(2, f);
+	ui->summaryTree->headerItem()->setFont(3, f);
+	ui->summaryTree->headerItem()->setTextAlignment(0, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(1, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
+	ui->summaryTree->headerItem()->setTextAlignment(3, Qt::AlignCenter);
+
+	QList<GroupItem*> items = SqlTools::loadSummary( months );
+
+	foreach(GroupItem* group, items)
+	{
+		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(ui->summaryTree);
+		groupTreeItem->setText(0, group->name());
+
+		double groupIncome = group->value(WIMMItem::FirstIn) + group->value(WIMMItem::SecondIn);
+		double groupOutcome = group->value(WIMMItem::FirstOut) + group->value(WIMMItem::SecondOut);
+		double groupEst= groupIncome - groupOutcome;
+
+		groupTreeItem->setText(1, Tools::moneyString( groupIncome));
+		groupTreeItem->setText(2, Tools::moneyString( groupOutcome));
+		groupTreeItem->setText(3, Tools::moneyString( groupEst));
+
+		groupTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
+		groupTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
+		groupTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
+
+		QFont f = groupTreeItem->font(0);
+		f.setBold(true);
+		groupTreeItem->setFont(0, f);
+		groupTreeItem->setFont(1, f);
+		groupTreeItem->setFont(2, f);
+		groupTreeItem->setFont(3, f);
+
+		foreach(CategoryItem* category, group->categories())
+		{
+			QTreeWidgetItem *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
+			categoryTreeItem->setText(0, category->name());
+
+			double categoryIncome = category->value(WIMMItem::FirstIn) + category->value(WIMMItem::SecondIn);
+			double categoryOutcome = category->value(WIMMItem::FirstOut) + category->value(WIMMItem::SecondOut);
+			double categoryEst = categoryIncome - categoryOutcome;
+
+			categoryTreeItem->setText(1, Tools::moneyString( categoryIncome ));
+			categoryTreeItem->setText(2, Tools::moneyString( categoryOutcome ));
+			categoryTreeItem->setText(3, Tools::moneyString( categoryEst ));
+
+			categoryTreeItem->setBackgroundColor(1, QColor(200, 255, 200));
+			categoryTreeItem->setBackgroundColor(2, QColor(255, 200, 200));
+			categoryTreeItem->setBackgroundColor(3, QColor(220, 250, 255));
+		}
+	}
+
+	ui->summaryTree->expandAll();
+	ui->summaryTree->resizeColumnToContents(0);
+	ui->summaryTree->resizeColumnToContents(1);
+	ui->summaryTree->resizeColumnToContents(2);
+
+	qDeleteAll(items);
+	items.clear();
 }

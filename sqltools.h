@@ -17,6 +17,7 @@ class SqlTools
 {
 public:
 	static WIMMModel* loadModel();
+	static QList<GroupItem*> loadSummary(QList<int> months);
 
 	static bool monthRecordExists(int year, int month);
 	static MonthItem *addMonthRecord(int year, int month);
@@ -31,11 +32,12 @@ public:
 	static QSqlQuery emptyQuery();
 	static bool execQuery(QSqlQuery &query);
 
-private:
-	static QSqlDatabase db();
 	static QList<MonthItem*> loadMonths();
 	static bool loadGroups(MonthItem *month);
 	static bool loadCategories(GroupItem *group);
+
+private:
+	static QSqlDatabase db();
 
 
 	static const QString mConnectionName;

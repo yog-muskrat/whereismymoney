@@ -16,7 +16,8 @@ SOURCES += main.cpp \
 	tools.cpp \
     categorieseditor.cpp \
     wimmmodel.cpp \
-    structs.cpp
+    structs.cpp \
+    wimmfiltermodel.cpp
 
 HEADERS += \
 	mainwindow.h \
@@ -25,7 +26,8 @@ HEADERS += \
 	sqltools.h \
 	tools.h \
     categorieseditor.h \
-    wimmmodel.h
+    wimmmodel.h \
+    wimmfiltermodel.h
 
 DISTFILES += \
 	bin/wimm.db
@@ -34,3 +36,6 @@ FORMS += \
 	mainwindow.ui \
 	addmonthdialog.ui \
     categorieseditor.ui
+
+RESOURCES += \
+    res.qrc

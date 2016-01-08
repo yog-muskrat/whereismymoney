@@ -1,7 +1,9 @@
 #include "wimmmodel.h"
 #include "sqltools.h"
 #include "structs.h"
+#include "tools.h"
 
+#include <QIcon>
 #include <QFont>
 #include <QColor>
 #include <QDebug>
@@ -38,7 +40,7 @@ void WIMMModel::addMonth(MonthItem *item)
 	addMonths(items);
 }
 
-void WIMMModel::removeMonthById(int monthId)
+void WIMMModel::removeMonth(int monthId)
 {
 	int row = -1;
 
@@ -58,6 +60,178 @@ void WIMMModel::removeMonthById(int monthId)
 
 	beginRemoveRows(QModelIndex(), row, row);
 	delete mData.takeAt(row);
+	endRemoveRows();
+}
+
+QModelIndex WIMMModel::monthIndex(int monthId) const
+{
+	for(int i = 0; i < mData.count(); ++i)
+	{
+		if(mData[i]->id() == monthId)
+		{
+			return index(i, 0, QModelIndex());
+		}
+	}
+
+	return QModelIndex();
+}
+
+QModelIndex WIMMModel::monthIndex(int year, int month) const
+{
+	for(int i = 0; i < mData.count(); ++i)
+	{
+		if(mData[i]->year() == year && mData[i]->month() == month)
+		{
+			return index(i, 0);
+		}
+	}
+
+	return QModelIndex();
+}
+
+int WIMMModel::monthId(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() == Month)
+	{
+		return item->id();
+	}
+	else if(item->level() == Group)
+	{
+		GroupItem *group = dynamic_cast<GroupItem*>(item);
+		Q_ASSERT(group);
+
+		return group->month()->id();
+	}
+	else if(item->level() == Category)
+	{
+		CategoryItem *category= dynamic_cast<CategoryItem*>(item);
+		Q_ASSERT(category);
+
+		return category->group()->month()->id();
+	}
+
+	return -1;
+}
+
+bool WIMMModel::hasComment(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() == Category &&
+			(index.column() == COL_FirstHalfIn ||
+			 index.column() == COL_FirstHalfOut ||
+			 index.column() == COL_FirstHalfEst ||
+			 index.column() == COL_SecondHalfIn ||
+			 index.column() == COL_SecondHalfOut ||
+			 index.column() == COL_SecondHalfEst))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+QString WIMMModel::comment(const QModelIndex &index) const
+{
+	if(hasComment(index))
+	{
+		CategoryItem *item = dynamic_cast<CategoryItem*>( itemForIndex(index));
+		Q_ASSERT(item);
+
+		int col = index.column();
+
+		if(col == COL_FirstHalfIn)
+		{
+			return item->comment(WIMMItem::FirstIn);
+		}
+		else if(col == COL_FirstHalfOut)
+		{
+			return item->comment(WIMMItem::FirstOut);
+		}
+		else if(col == COL_FirstHalfEst)
+		{
+			return item->comment(WIMMItem::FirstEst);
+		}
+		else if(col == COL_SecondHalfIn)
+		{
+			return item->comment(WIMMItem::SecondIn);
+		}
+		else if(col == COL_SecondHalfOut)
+		{
+			return item->comment(WIMMItem::SecondOut);
+		}
+		else if(col == COL_SecondHalfEst)
+		{
+			return item->comment(WIMMItem::SecondEst);
+		}
+	}
+
+	return "";
+}
+
+void WIMMModel::setComment(const QModelIndex &index, QString comment)
+{
+	if(hasComment(index))
+	{
+		CategoryItem *item = dynamic_cast<CategoryItem*>( itemForIndex(index));
+		Q_ASSERT(item);
+
+		int col = index.column();
+
+		bool changed = false;
+		if(col == COL_FirstHalfIn)
+		{
+			changed = true;
+			item->setComment(WIMMItem::FirstIn, comment);
+		}
+		else if(col == COL_FirstHalfOut)
+		{
+			changed = true;
+			item->setComment(WIMMItem::FirstOut, comment);
+		}
+		else if(col == COL_FirstHalfEst)
+		{
+			changed = true;
+			item->setComment(WIMMItem::FirstEst, comment);
+		}
+		else if(col == COL_SecondHalfIn)
+		{
+			changed = true;
+			item->setComment(WIMMItem::SecondIn, comment);
+		}
+		else if(col == COL_SecondHalfOut)
+		{
+			changed = true;
+			item->setComment(WIMMItem::SecondOut, comment);
+		}
+		else if(col == COL_SecondHalfEst)
+		{
+			changed = true;
+			item->setComment(WIMMItem::SecondEst, comment);
+		}
+
+		if(changed)
+		{
+			item->save();
+			emit dataChanged(index, index);
+		}
+	}
+}
+
+void WIMMModel::clear()
+{
+	if(rowCount() == 0)
+	{
+		return;
+	}
+
+	beginRemoveRows(QModelIndex(), 0, rowCount()-1);
+	qDeleteAll(mData);
+	mData.clear();
 	endRemoveRows();
 }
 
@@ -134,17 +308,69 @@ QVariant WIMMModel::data(const QModelIndex &index, int role) const
 	{
 		return textColorRole(index);
 	}
+	else if(role == Qt::ToolTipRole)
+	{
+		return tooltipRole(index);
+	}
+
 	return QVariant();
 }
 
 bool WIMMModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-	if(role != Qt::EditRole && role != Qt::DisplayRole)
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() != Category || (role != Qt::EditRole && role != Qt::DisplayRole))
 	{
 		return false;
 	}
 
-	///TODO: Implement!
+	CategoryItem* category = dynamic_cast<CategoryItem*>(item);
+	Q_ASSERT(category);
+
+	int col = index.column();
+
+	bool changed = false;
+
+	if(col == COL_FirstHalfIn)
+	{
+		changed = true;
+		category->setFirstHalfIncome( value.toDouble() );
+	}
+	else if(col == COL_FirstHalfOut)
+	{
+		changed = true;
+		category->setFirstHalfOutcome( value.toDouble() );
+	}
+	else if(col == COL_FirstHalfEst)
+	{
+		changed = true;
+		category->setFirstHalfEstimated( value.toDouble() );
+	}
+	else if(col == COL_SecondHalfIn)
+	{
+		changed = true;
+		category->setSecondHalfIncome( value.toDouble() );
+	}
+	else if(col == COL_SecondHalfOut)
+	{
+		changed = true;
+		category->setSecondHalfOutcome( value.toDouble() );
+	}
+	else if(col == COL_SecondHalfEst)
+	{
+		changed = true;
+		category->setSecondHalfEstimated( value.toDouble() );
+	}
+
+	if(changed)
+	{
+		category->save();
+		QVector<int> roles;
+		roles << role;
+		emit dataChanged(index, index, roles);
+	}
 
 	return true;
 }
@@ -169,42 +395,56 @@ Qt::ItemFlags WIMMModel::flags(const QModelIndex &index) const
 
 QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-	if(orientation != Qt::Horizontal || role != Qt::DisplayRole)
+	if(orientation != Qt::Horizontal )
 	{
 		return QVariant();
 	}
 
-	if(section == COL_DbId)
+	if(role == Qt::DisplayRole)
 	{
-		return "БД";
+		if(section == COL_DbId)
+		{
+			return "БД";
+		}
+		else if(section == COL_Title)
+		{
+			return "Категория";
+		}
+		else if(section == COL_FirstHalfIn)
+		{
+			return QString("%0 (I)").arg(QChar(0x002b));
+		}
+		else if(section == COL_FirstHalfOut)
+		{
+			return QString("%0 (I)").arg(QChar(0x2212));
+		}
+		else if(section == COL_FirstHalfEst)
+		{
+			return "? (I)";
+		}
+		else if(section == COL_SecondHalfIn)
+		{
+			return QString("%0 (II").arg(QChar(0x002b));
+		}
+		else if(section == COL_SecondHalfOut)
+		{
+			return QString("%0 (II)").arg(QChar(0x2212));
+		}
+		else if(section == COL_SecondHalfEst)
+		{
+			return "? (II)";
+		}
 	}
-	else if(section == COL_Title)
+	else if(role == Qt::FontRole)
 	{
-		return "Категория";
+		QFont f = qApp->font();
+		f.setBold(true);
+		f.setPointSize( f.pointSize() + 1 );
+		return f;
 	}
-	else if(section == COL_FirstHalfIn)
+	else if(role == Qt::TextAlignmentRole)
 	{
-		return "+ (I)";
-	}
-	else if(section == COL_FirstHalfOut)
-	{
-		return "- (I)";
-	}
-	else if(section == COL_FirstHalfEst)
-	{
-		return "? (I)";
-	}
-	else if(section == COL_SecondHalfIn)
-	{
-		return "+ (II)";
-	}
-	else if(section == COL_SecondHalfOut)
-	{
-		return "- (II)";
-	}
-	else if(section == COL_SecondHalfEst)
-	{
-		return "? (II)";
+		return Qt::AlignCenter;
 	}
 
 	return QAbstractItemModel::headerData(section, orientation, role);
@@ -227,27 +467,27 @@ QVariant WIMMModel::displayRole(const QModelIndex &index) const
 	}
 	else if(col == COL_FirstHalfIn )
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstIn));
+		return Tools::moneyString( item ->value(WIMMItem::FirstIn));
 	}
 	else if(col == COL_FirstHalfOut )
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstOut));
+		return Tools::moneyString( item ->value(WIMMItem::FirstOut));
 	}
 	else if(col == COL_FirstHalfEst )
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstEst));
+		return Tools::moneyString( item ->value(WIMMItem::FirstEst));
 	}
 	else if(col == COL_SecondHalfIn )
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondIn));
+		return Tools::moneyString( item ->value(WIMMItem::SecondIn));
 	}
 	else if(col == COL_SecondHalfOut )
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondOut));
+		return Tools::moneyString( item ->value(WIMMItem::SecondOut));
 	}
 	else if(col == COL_SecondHalfEst)
 	{
-		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondEst));
+		return Tools::moneyString( item ->value(WIMMItem::SecondEst));
 	}
 
 	return QVariant();
@@ -258,47 +498,39 @@ QVariant WIMMModel::editRole(const QModelIndex &index) const
 	WIMMItem *item = itemForIndex(index);
 	Q_ASSERT(item);
 
-	if(item->level() != Category)
-	{
-		return QVariant();
-	}
-
 	int col = index.column();
-
-	CategoryItem *category = dynamic_cast<CategoryItem*>(item);
-	Q_ASSERT(category);
 
 	if(col == COL_DbId)
 	{
-		return category->id();
+		return item->id();
 	}
 	else if(col == COL_Title)
 	{
-		return category->name();
+		return item->name();
 	}
 	else if(col == COL_FirstHalfIn)
 	{
-		return category->firstHalfIncome();
-	}
-	else if(col == COL_SecondHalfIn)
-	{
-		return category->secondHalfIncome();
-	}
-	else if(col == COL_SecondHalfEst)
-	{
-		return category->secondHalfEstimated();
+		return item->value(WIMMItem::FirstIn);
 	}
 	else if(col == COL_FirstHalfOut)
 	{
-		return category->firstHalfOutcome();
+		return item->value(WIMMItem::FirstOut);
+	}
+	else if(col == COL_FirstHalfEst)
+	{
+		return item->value(WIMMItem::FirstEst);
+	}
+	else if(col == COL_SecondHalfIn)
+	{
+		return item->value(WIMMItem::SecondIn);
 	}
 	else if(col == COL_SecondHalfOut)
 	{
-		return category->secondHalfOutcome();
+		return item->value(WIMMItem::SecondOut);
 	}
 	else if(col == COL_SecondHalfEst)
 	{
-		return category->secondHalfEstimated();
+		return item->value(WIMMItem::SecondEst);
 	}
 
 	return QVariant();
@@ -306,6 +538,40 @@ QVariant WIMMModel::editRole(const QModelIndex &index) const
 
 QVariant WIMMModel::decorationRole(const QModelIndex &index) const
 {
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() == Category)
+	{
+		CategoryItem *category = dynamic_cast<CategoryItem*>(item);
+		Q_ASSERT(category);
+
+		if(index.column() == COL_FirstHalfIn && !category->comment(WIMMItem::FirstIn).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+		else if(index.column() == COL_FirstHalfOut && !category->comment(WIMMItem::FirstOut).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+		else if(index.column() == COL_FirstHalfEst && !category->comment(WIMMItem::FirstEst).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+		else if(index.column() == COL_SecondHalfIn && !category->comment(WIMMItem::SecondIn).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+		else if(index.column() == COL_SecondHalfOut && !category->comment(WIMMItem::SecondOut).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+		else if(index.column() == COL_SecondHalfEst && !category->comment(WIMMItem::SecondEst).isEmpty())
+		{
+			return QIcon(":comment");
+		}
+	}
+
 	return QVariant();
 }
 
@@ -316,31 +582,31 @@ QVariant WIMMModel::backgroundRole(const QModelIndex &index) const
 
 	int col = index.column();
 
-	if(item->level() == Category)
+	QColor c(255,255,255);
+
+	if(col == COL_FirstHalfIn || col == COL_SecondHalfIn)
 	{
-		if(col == COL_FirstHalfIn || col == COL_SecondHalfIn)
-		{
-			return QColor(230, 255, 230);
-		}
-		else if(col == COL_FirstHalfOut || col == COL_SecondHalfOut)
-		{
-			return QColor(255, 230, 230);
-		}
-		else if(col == COL_FirstHalfEst || col == COL_SecondHalfEst)
-		{
-			return QColor(240, 240, 255);
-		}
+		c.setRgb(200, 255, 200);
 	}
-	/*else if(item->level() == Group)
+	else if(col == COL_FirstHalfOut || col == COL_SecondHalfOut)
 	{
-		return QColor(240, 240, 240);
+		c.setRgb(255, 200, 200);
+	}
+	else if(col == COL_FirstHalfEst || col == COL_SecondHalfEst)
+	{
+		c.setRgb(220, 250, 255);
+	}
+
+	if(item->level() == Group)
+	{
+//		c = c.darker(110);
 	}
 	else if(item->level() == Month)
 	{
-		return QColor(220, 220, 220);
-	}*/
+//		c = c.darker(110);
+	}
 
-	return QVariant();
+	return c;
 }
 
 QVariant WIMMModel::fontRole(const QModelIndex &index) const
@@ -353,11 +619,11 @@ QVariant WIMMModel::fontRole(const QModelIndex &index) const
 	if(item->level() == Month)
 	{
 		f.setBold(true);
-		f.setPointSize( f.pointSize() + 2 );
+		f.setPointSize( f.pointSize() + 1 );
 	}
 	else if(item->level() == Group)
 	{
-		f.setPointSize( f.pointSize() + 1 );
+		f.setBold(true);
 	}
 
 	return f;
@@ -378,6 +644,45 @@ QVariant WIMMModel::alignmentRole(const QModelIndex &index) const
 	if(index.column() != COL_Title)
 	{
 		return Qt::AlignCenter;
+	}
+
+	return QVariant();
+}
+
+QVariant WIMMModel::tooltipRole(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() == Category)
+	{
+		CategoryItem *category = dynamic_cast<CategoryItem*>(item);
+		Q_ASSERT(category);
+
+		if(index.column() == COL_FirstHalfIn)
+		{
+			return category->comment(WIMMItem::FirstIn);
+		}
+		else if(index.column() == COL_FirstHalfOut)
+		{
+			return category->comment(WIMMItem::FirstOut);
+		}
+		else if(index.column() == COL_FirstHalfEst)
+		{
+			return category->comment(WIMMItem::FirstEst);
+		}
+		else if(index.column() == COL_SecondHalfIn)
+		{
+			return category->comment(WIMMItem::SecondIn);
+		}
+		else if(index.column() == COL_SecondHalfOut)
+		{
+			return category->comment(WIMMItem::SecondOut);
+		}
+		else if(index.column() == COL_SecondHalfEst)
+		{
+			return category->comment(WIMMItem::SecondEst);
+		}
 	}
 
 	return QVariant();

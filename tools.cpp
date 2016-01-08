@@ -1,5 +1,7 @@
 #include "tools.h"
 
+#include <QLocale>
+
 QString Tools::capitalize(const QString &string)
 {
 	if(string.isEmpty())
@@ -16,5 +18,5 @@ QString Tools::capitalize(const QString &string)
 
 QString Tools::moneyString(const double amount)
 {
-
+	return QLocale::system().toCurrencyString(amount, QChar(0x20bd));
 }

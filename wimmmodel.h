@@ -30,7 +30,17 @@ public:
 
 	void addMonths( QList<MonthItem*> items);
 	void addMonth( MonthItem* item);
-	void removeMonthById(int monthId);
+	void removeMonth(int monthId);
+	QModelIndex monthIndex(int monthId) const;
+	QModelIndex monthIndex(int year, int month) const;
+	int monthId(const QModelIndex &index) const;
+
+	bool hasComment(const QModelIndex &index) const;
+
+	QString comment(const QModelIndex &index) const;
+	void setComment(const QModelIndex &index, QString comment);
+
+	void clear();
 
 	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -41,7 +51,6 @@ public:
 	virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
 	virtual QModelIndex parent(const QModelIndex &child) const;
 
-
 private:
 	QVariant displayRole(const QModelIndex &index) const;
 	QVariant editRole(const QModelIndex &index) const;
@@ -50,6 +59,7 @@ private:
 	QVariant fontRole(const QModelIndex &index) const;
 	QVariant textColorRole(const QModelIndex &index) const;
 	QVariant alignmentRole(const QModelIndex &index) const;
+	QVariant tooltipRole(const QModelIndex &index) const;
 
 	WIMMItem* itemForIndex(const QModelIndex &index) const;
 

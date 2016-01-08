@@ -280,8 +280,12 @@ void CategoriesEditor::onContextMenuRequested(const QPoint &point)
 void CategoriesEditor::onAddCategory()
 {
 	QTreeWidgetItem *parent = ui->treeWidget->currentItem();
-
 	Q_ASSERT(parent);
+
+	if(parent->data(0, TypeRole).toString() == "category")
+	{
+		parent = parent->parent();
+	}
 
 	QString name = QInputDialog::getText(this, "Новая категория", "Укажите название категории затрат");
 	if(name.isEmpty())

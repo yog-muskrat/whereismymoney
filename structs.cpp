@@ -1,6 +1,8 @@
 #include "structs.h"
 #include "tools.h"
 
+#include "sqltools.h"
+
 /// MonthItem Class
 
 MonthItem::MonthItem() : WIMMItem(), mId(-1), mYear(-1), mMonth(-1)
@@ -29,7 +31,7 @@ QString MonthItem::monthName() const
 
 QString MonthItem::name() const
 {
-	return QString("%0 %1").arg( monthName() ).arg(mYear);
+	return QString("%1 %0").arg( monthName() ).arg(mYear);
 }
 
 double MonthItem::value(const WIMMItem::Column col) const
@@ -204,6 +206,36 @@ double CategoryItem::value(WIMMItem::Column col) const
 	return 0;
 }
 
+QString CategoryItem::comment(WIMMItem::Column col) const
+{
+	switch(col)
+	{
+	case WIMMItem::FirstIn: return firstHalfIncomeComment();
+	case WIMMItem::FirstOut: return firstHalfOutcomeComment();
+	case WIMMItem::FirstEst: return firstHalfEstimatedComment();
+	case WIMMItem::SecondIn: return secondHalfIncomeComment();
+	case WIMMItem::SecondOut: return secondHalfOutcomeComment();
+	case WIMMItem::SecondEst: return secondHalfEstimatedComment();
+	default: break;
+	}
+
+	return QString();
+}
+
+void CategoryItem::setComment(WIMMItem::Column col, QString comment)
+{
+	switch(col)
+	{
+	case WIMMItem::FirstIn: setFirstHalfIncomeComment(comment); break;
+	case WIMMItem::FirstOut: setFirstHalfOutcomeComment(comment); break;
+	case WIMMItem::FirstEst: setFirstHalfEstimatedComment(comment); break;
+	case WIMMItem::SecondIn: setSecondHalfIncomeComment(comment); break;
+	case WIMMItem::SecondOut: setSecondHalfOutcomeComment(comment); break;
+	case WIMMItem::SecondEst: setSecondHalfEstimatedComment(comment); break;
+	default: break;
+	};
+}
+
 void CategoryItem::setId(int id)
 {
 	mId = id;
@@ -292,5 +324,70 @@ GroupItem *CategoryItem::group() const
 void CategoryItem::setGroup(GroupItem *value)
 {
 	pGroup = value;
+}
+
+bool CategoryItem::save()
+{
+	return SqlTools::saveMoneyRecord( this );
+}
+
+QString CategoryItem::firstHalfIncomeComment() const
+{
+	return mFirstHalfIncomeComment;
+}
+
+void CategoryItem::setFirstHalfIncomeComment(const QString &firstHalfIncomeComment)
+{
+	mFirstHalfIncomeComment = firstHalfIncomeComment;
+}
+
+QString CategoryItem::firstHalfOutcomeComment() const
+{
+	return mFirstHalfOutcomeComment;
+}
+
+void CategoryItem::setFirstHalfOutcomeComment(const QString &firstHalfOutcomeComment)
+{
+	mFirstHalfOutcomeComment = firstHalfOutcomeComment;
+}
+
+QString CategoryItem::firstHalfEstimatedComment() const
+{
+	return mFirstHalfEstimatedComment;
+}
+
+void CategoryItem::setFirstHalfEstimatedComment(const QString &firstHalfEstimatedComment)
+{
+	mFirstHalfEstimatedComment = firstHalfEstimatedComment;
+}
+
+QString CategoryItem::secondHalfIncomeComment() const
+{
+	return mSecondHalfIncomeComment;
+}
+
+void CategoryItem::setSecondHalfIncomeComment(const QString &secondHalfIncomeComment)
+{
+	mSecondHalfIncomeComment = secondHalfIncomeComment;
+}
+
+QString CategoryItem::secondHalfOutcomeComment() const
+{
+	return mSecondHalfOutcomeComment;
+}
+
+void CategoryItem::setSecondHalfOutcomeComment(const QString &secondHalfOutcomeComment)
+{
+	mSecondHalfOutcomeComment = secondHalfOutcomeComment;
+}
+
+QString CategoryItem::secondHalfEstimatedComment() const
+{
+	return mSecondHalfEstimatedComment;
+}
+
+void CategoryItem::setSecondHalfEstimatedComment(const QString &secondHalfEstimatedComment)
+{
+	mSecondHalfEstimatedComment = secondHalfEstimatedComment;
 }
 /// End CategoryItem Class

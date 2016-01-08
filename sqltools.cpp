@@ -17,6 +17,86 @@ WIMMModel *SqlTools::loadModel()
 	return model;
 }
 
+QList<GroupItem *> SqlTools::loadSummary(QList<int> months)
+{
+	QList<GroupItem*> result;
+
+	QSqlQuery query = emptyQuery();
+	query.prepare("SELECT id, name FROM category_groups ORDER BY pos");
+
+	if(!execQuery(query))
+	{
+		return result;
+	}
+
+	while(query.next())
+	{
+		QSqlRecord rec = query.record();
+
+		GroupItem *group = new GroupItem;
+		group->setId(rec.value("id").toInt());
+		group->setName(rec.value("name").toString());
+
+		QSqlQuery moneyQuery = emptyQuery();
+
+		QString sql = "SELECT "
+					  "sum(m.first_half_income ) AS first_in, "
+					  "sum(m.second_half_income) AS second_in, "
+					  "sum(m.first_half_outcome) AS first_out, "
+					  "sum(m.second_half_outcome) AS second_out, "
+					  "sum(m.first_half_est) AS first_est, "
+					  "sum(m.second_half_est) AS second_est, "
+					  "c.name AS category_name, "
+					  "c.id AS category_id "
+					  "FROM money m JOIN categories c ON m.category_id = c.id "
+					  "WHERE category_group=:group";
+		if(!months.isEmpty())
+		{
+			QStringList where;
+
+			foreach(int id, months)
+			{
+				where << QString::number(id);
+			}
+
+			sql += QString(" AND month_id IN (%0)").arg(where.join(", "));
+		}
+
+		sql += " GROUP BY c.name, c.id ORDER BY c.pos";
+
+		moneyQuery.prepare(sql);
+		moneyQuery.bindValue(":group", group->id());
+
+		if(!execQuery(moneyQuery))
+		{
+			qDeleteAll(result);
+			result.clear();
+			break;
+		}
+
+		while(moneyQuery.next())
+		{
+			QSqlRecord moneyRec = moneyQuery.record();
+
+			CategoryItem *item = new CategoryItem;
+			item->setFirstHalfIncome( moneyRec.value("first_in").toDouble() );
+			item->setFirstHalfOutcome( moneyRec.value("first_out").toDouble() );
+			item->setFirstHalfEstimated( moneyRec.value("first_est").toDouble() );
+			item->setSecondHalfIncome( moneyRec.value("second_in").toDouble() );
+			item->setSecondHalfOutcome( moneyRec.value("second_out").toDouble() );
+			item->setSecondHalfEstimated( moneyRec.value("second_est").toDouble() );
+			item->setCategoryId(moneyRec.value("category_id").toInt());
+			item->setName(moneyRec.value("category_name").toString());
+
+			group->addCategory( item );
+		}
+
+		result << group;
+	}
+
+	return result;
+}
+
 bool SqlTools::monthRecordExists(int year, int month)
 {
 	QSqlQuery query = emptyQuery();
@@ -74,20 +154,35 @@ bool SqlTools::saveMoneyRecord(CategoryItem *md)
 	{
 		query.prepare("INSERT INTO money "
 					  "(category_id, "
+					  "month_id, "
 					  "first_half_income, "
 					  "first_half_outcome, "
 					  "first_half_est, "
 					  "second_half_income, "
 					  "second_half_outcome, "
-					  "second_half_est) "
+					  "second_half_est, "
+					  "first_half_income_comment, "
+					  "first_half_outcome_comment, "
+					  "first_half_est_comment, "
+					  "second_half_income_comment, "
+					  "second_half_outcome_comment, "
+					  "second_half_est_comment) "
 					  "VALUES (:category, "
+					  ":month_id, "
 					  ":first_in, "
 					  ":first_out, "
 					  ":first_est, "
 					  ":second_in, "
 					  ":second_out, "
-					  ":second_est)");
-		query.bindValue(":category_id", md->categoryId());
+					  ":second_est, "
+					  ":first_in_comment, "
+					  ":first_out_comment, "
+					  ":first_est_comment, "
+					  ":second_in_comment, "
+					  ":second_out_comment, "
+					  ":second_est_comment)");
+		query.bindValue(":category", md->categoryId());
+		query.bindValue(":month_id", md->group()->month()->id());
 	}
 	else
 	{
@@ -97,7 +192,13 @@ bool SqlTools::saveMoneyRecord(CategoryItem *md)
 					  "first_half_est=:first_est, "
 					  "second_half_income=:second_in, "
 					  "second_half_outcome=:second_out, "
-					  "second_half_est=:second_est "
+					  "second_half_est=:second_est, "
+					  "first_half_income_comment=:first_in_comment, "
+					  "first_half_outcome_comment=:first_out_comment, "
+					  "first_half_est_comment=:first_est_comment,"
+					  "second_half_income_comment=:second_in_comment, "
+					  "second_half_outcome_comment=:second_out_comment, "
+					  "second_half_est_comment=:second_est_comment "
 					  "WHERE id=:record_id");
 		query.bindValue(":record_id", md->id());
 	}
@@ -108,6 +209,12 @@ bool SqlTools::saveMoneyRecord(CategoryItem *md)
 	query.bindValue(":second_in", md->secondHalfIncome());
 	query.bindValue(":second_out", md->secondHalfOutcome());
 	query.bindValue(":second_est", md->secondHalfEstimated());
+	query.bindValue(":first_in_comment", md->firstHalfIncomeComment());
+	query.bindValue(":first_out_comment", md->firstHalfOutcomeComment());
+	query.bindValue(":first_est_comment", md->firstHalfEstimatedComment());
+	query.bindValue(":second_in_comment", md->secondHalfIncomeComment());
+	query.bindValue(":second_out_comment", md->secondHalfOutcomeComment());
+	query.bindValue(":second_est_comment", md->secondHalfEstimatedComment());
 
 	bool ok = execQuery(query);
 
@@ -246,7 +353,13 @@ bool SqlTools::loadCategories(GroupItem *group)
 				  "m.first_half_est, "
 				  "m.second_half_income, "
 				  "m.second_half_outcome, "
-				  "m.second_half_est "
+				  "m.second_half_est, "
+				  "m.first_half_income_comment, "
+				  "m.first_half_outcome_comment, "
+				  "m.first_half_est_comment, "
+				  "m.second_half_income_comment, "
+				  "m.second_half_outcome_comment, "
+				  "m.second_half_est_comment "
 				  "FROM money m JOIN categories c ON m.category_id=c.id "
 				  "WHERE month_id=:month_id AND c.category_group=:group "
 				  "ORDER BY c.pos");
@@ -272,6 +385,12 @@ bool SqlTools::loadCategories(GroupItem *group)
 		item->setSecondHalfIncome( rec.value("second_half_income").toDouble() );
 		item->setSecondHalfOutcome( rec.value("second_half_outcome").toDouble() );
 		item->setSecondHalfEstimated( rec.value("second_half_est").toDouble() );
+		item->setFirstHalfIncomeComment( rec.value("first_half_income_comment").toString() );
+		item->setFirstHalfOutcomeComment( rec.value("first_half_outcome_comment").toString() );
+		item->setFirstHalfEstimatedComment( rec.value("first_half_est_comment").toString() );
+		item->setSecondHalfIncomeComment( rec.value("second_half_income_comment").toString() );
+		item->setSecondHalfOutcomeComment( rec.value("second_half_outcome_comment").toString() );
+		item->setSecondHalfEstimatedComment( rec.value("second_half_est_comment").toString() );
 
 		group->addCategory( item );
 	}
