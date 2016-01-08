@@ -1,160 +1,60 @@
-#ifndef WIMMMODEL_H
-#define WIMMMODEL_H
+#ifndef WIMMMODEL
+#define WIMMMODEL
 
-#include <QtQml>
-#include <QObject>
-#include <QAbstractListModel>
-#include <QAbstractTableModel>
+#include <QAbstractItemModel>
 
-struct MoneyData
-{
-	int recordId;
-	QString categoryName;
-	int categoryId;
-	double firstHalfIncome;
-	double secondHalfIncome;
-	double firstHalfOutcome;
-	double secondHalfOutcome;
-};
-
+class MonthItem;
+class WIMMItem;
 
 /*!
  * \brief Класс модели данных с цифрами по одной категории затрат за один месяц
  */
-#ifdef QMLVERSION
-class MoneyModel : public QAbstractListModel
-#else
-class MoneyModel : public QAbstractTableModel
-#endif
-{
-	Q_OBJECT
-public:
-	enum DataRoles
-	{
-		RecordIdRole = Qt::UserRole + 1,
-		CategoryIdRole,
-		CategoryNameRole,
-		FirstHalfIncomeRole,
-		FirstHalfOutcomeRole,
-		SecondHalfIncomeRole,
-		SecondHalfOutcomeRole
-	};
-
-	MoneyModel(QObject *parent = 0);
-	~MoneyModel();
-
-	void addMoneyData(MoneyData md);
-
-#ifndef QMLVERSION
-	enum Columns {
-		COL_RecordId,
-		COL_Category,
-		COL_FirstHalfIn,
-		COL_FirstHalfOut,
-		COL_SecondHalfIn,
-		COL_SecondHalfOut,
-		COL_Count
-	};
-
-	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const {return COL_Count;}
-#endif
-	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const { return mData.count(); }
-	virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-	virtual QHash<int, QByteArray> roleNames() const;
-	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-
-	bool isDirty() const {return mDirty;}
-
-public slots:
-	virtual bool submit();
-	virtual void revert();
-
-private:
-	QVariant displayRole(const QModelIndex &index) const;
-	QVariant editRole(const QModelIndex &index) const;
-
-	QList<MoneyData> mData;
-	bool mDirty;
-
-};
-
-/*!
- * \brief Класс объекта, содержащего данные по всем статьям затрат одного месяца
- */
-class WIMMObject : public QObject
-{
-	Q_OBJECT
-	Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
-	Q_PROPERTY(int year READ year WRITE setYear NOTIFY yearChanged)
-	Q_PROPERTY(int month READ month WRITE setMonth NOTIFY monthChanged)
-#ifdef QMLVERSION
-	Q_PROPERTY(QAbstractListModel * moneyModel READ moneyModel NOTIFY moneyModelChanged)
-#else
-	Q_PROPERTY(QAbstractTableModel * moneyModel READ moneyModel NOTIFY moneyModelChanged)
-#endif
-public:
-	WIMMObject(QObject *parent = 0);
-	~WIMMObject();
-
-	int id() const { return mId; }
-	void setId(int id);
-
-	int year() const { return mYear; }
-	void setYear(int year);
-
-	int month() const { return mMonth; }
-	void setMonth(int month);
-
-	MoneyModel* moneyModel() { return mMoneyModel; }
-	void addMoneyData(MoneyData md);
-
-signals:
-	void idChanged();
-	void yearChanged();
-	void monthChanged();
-	void moneyModelChanged();
-
-private:
-	int mId;
-	int mYear;
-	int mMonth;
-	MoneyModel *mMoneyModel;
-};
-
-class WIMMModel : public QAbstractListModel
+class WIMMModel : public QAbstractItemModel
 {
 	Q_OBJECT
 public:
 	WIMMModel(QObject *parent = 0);
 	~WIMMModel();
 
-	WIMMObject * objectAt(const QModelIndex &index);
+	enum Column {
+		COL_Title,
+		COL_DbId,
+		COL_FirstHalfIn,
+		COL_FirstHalfOut,
+		COL_FirstHalfEst,
+		COL_SecondHalfIn,
+		COL_SecondHalfOut,
+		COL_SecondHalfEst,
+		COL_Count
+	};
 
-	bool appendObject(WIMMObject *obj);
+	void addMonths( QList<MonthItem*> items);
+	void addMonth( MonthItem* item);
+	void removeMonthById(int monthId);
 
+	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
-	virtual QVariant data(const QModelIndex &index, int role) const;
-	virtual bool removeRows(int row, int count, const QModelIndex &parent);
-	virtual bool submit();
-	virtual void revert();
-	bool isDirty() const {return mIsDirty;}
+	virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+	virtual bool setData(const QModelIndex &index, const QVariant &value, int role);
+	virtual Qt::ItemFlags flags(const QModelIndex &index) const;
+	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+	virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+	virtual QModelIndex parent(const QModelIndex &child) const;
+
 
 private:
-	QList<QObject*> mObjects;
-	bool mIsDirty;
+	QVariant displayRole(const QModelIndex &index) const;
+	QVariant editRole(const QModelIndex &index) const;
+	QVariant decorationRole(const QModelIndex &index) const;
+	QVariant backgroundRole(const QModelIndex &index) const;
+	QVariant fontRole(const QModelIndex &index) const;
+	QVariant textColorRole(const QModelIndex &index) const;
+	QVariant alignmentRole(const QModelIndex &index) const;
+
+	WIMMItem* itemForIndex(const QModelIndex &index) const;
+
+	QList<MonthItem*> mData;
 
 };
 
-/*!
- * \brief Класс для загрузки данных из БД
- */
-class DataLoader
-{
-public:
-	static QList<QObject*> loadData();
-	static WIMMModel* loadModel();
-private:
-	static bool loadMoneyData(WIMMObject*obj);
-};
-
-#endif // WIMMMODEL_H
+#endif // WIMMMODEL

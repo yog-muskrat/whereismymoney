@@ -1,5 +1,6 @@
 #include "addmonthdialog.h"
 #include "ui_addmonthdialog.h"
+#include "tools.h"
 
 #include <QDate>
 
@@ -13,7 +14,9 @@ AddMonthDialog::AddMonthDialog(QWidget *parent) :
 
 	for(int i = 1; i <= 12; ++i)
 	{
-		ui->cbMonth->addItem( QDate::longMonthName(i, QDate::StandaloneFormat), i);
+		QString monthName = QDate::longMonthName(i, QDate::StandaloneFormat);
+		monthName = Tools::capitalize(monthName);
+		ui->cbMonth->addItem( monthName, i);
 	}
 }
 

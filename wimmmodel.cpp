@@ -1,34 +1,103 @@
 #include "wimmmodel.h"
+#include "sqltools.h"
+#include "structs.h"
 
-#include <QSqlDatabase>
-#include <QSqlRecord>
-#include <QSqlQuery>
-#include <QSqlError>
+#include <QFont>
+#include <QColor>
 #include <QDebug>
+#include <QApplication>
 
-MoneyModel::MoneyModel(QObject *parent)
-#ifdef QMLVERSION
-	: QAbstractListModel(parent)
-#else
-	: QAbstractTableModel(parent)
-#endif
-{
-	mDirty = false;
-}
-
-MoneyModel::~MoneyModel()
+WIMMModel::WIMMModel(QObject *parent)
+	: QAbstractItemModel(parent)
 {
 }
 
-void MoneyModel::addMoneyData(MoneyData md)
+WIMMModel::~WIMMModel()
 {
-	beginInsertRows(QModelIndex(), mData.count(), mData.count());
-	mData<<md;
+	qDeleteAll(mData);
+}
+
+void WIMMModel::addMonths(QList<MonthItem *> items)
+{
+	if(items.isEmpty())
+	{
+		return;
+	}
+
+	int row = mData.count();
+
+	beginInsertRows(QModelIndex(), row, row + items.count() -1 );
+	mData.append( items );
 	endInsertRows();
 }
 
+void WIMMModel::addMonth(MonthItem *item)
+{
+	QList<MonthItem*> items;
+	items << item;
+	addMonths(items);
+}
 
-QVariant MoneyModel::data(const QModelIndex &index, int role) const
+void WIMMModel::removeMonthById(int monthId)
+{
+	int row = -1;
+
+	for(int i = 0; i < mData.count(); ++i)
+	{
+		if(mData[i]->id() == monthId)
+		{
+			row = i;
+			break;
+		}
+	}
+
+	if(row < 0)
+	{
+		return;
+	}
+
+	beginRemoveRows(QModelIndex(), row, row);
+	delete mData.takeAt(row);
+	endRemoveRows();
+}
+
+int WIMMModel::columnCount(const QModelIndex &parent) const
+{
+	Q_UNUSED(parent);
+	return COL_Count;
+}
+
+int WIMMModel::rowCount(const QModelIndex &parent) const
+{
+	WIMMItem *item = itemForIndex(parent);
+
+	if(item)
+	{
+		if(item->level() == Month)
+		{
+			MonthItem *month = dynamic_cast<MonthItem*>(item);
+			Q_ASSERT(month);
+
+			return month->groups().count();
+		}
+		else if(item->level() == Group)
+		{
+			GroupItem *group = dynamic_cast<GroupItem*>(item);
+			Q_ASSERT(group);
+
+			return group->categories().count();
+
+		}
+		else if(item->level() == Category)
+		{
+			return 0;
+		}
+	}
+
+	return mData.count();
+}
+
+QVariant WIMMModel::data(const QModelIndex &index, int role) const
 {
 	int row = index.row();
 
@@ -36,44 +105,6 @@ QVariant MoneyModel::data(const QModelIndex &index, int role) const
 	{
 		return QVariant();
 	}
-
-#ifdef QMLVERSION
-
-	const MoneyData &md = mData[row];
-	if(role == Qt::DisplayRole)
-	{
-		return md.categoryName;
-	}
-	else if(role == RecordIdRole)
-	{
-		return md.recordId;
-	}
-	else if(role == CategoryIdRole)
-	{
-		return md.categoryId;
-	}
-	else if(role == CategoryNameRole)
-	{
-		return md.categoryName;
-	}
-	else if(role == FirstHalfIncomeRole)
-	{
-		return md.firstHalfIncome;
-	}
-	else if(role == FirstHalfOutcomeRole)
-	{
-		return md.firstHalfOutcome;
-	}
-	else if(role == SecondHalfIncomeRole)
-	{
-		return md.secondHalfIncome;
-	}
-	else if(role == SecondHalfOutcomeRole)
-	{
-		return md.secondHalfOutcome;
-	}
-
-#else
 
 	if(role == Qt::EditRole)
 	{
@@ -83,42 +114,71 @@ QVariant MoneyModel::data(const QModelIndex &index, int role) const
 	{
 		return displayRole(index);
 	}
-
-#endif
-
+	else if(role == Qt::DecorationRole)
+	{
+		return decorationRole(index);
+	}
+	else if(role == Qt::BackgroundColorRole)
+	{
+		return backgroundRole(index);
+	}
+	else if(role == Qt::FontRole)
+	{
+		return fontRole(index);
+	}
+	else if(role == Qt::TextAlignmentRole)
+	{
+		return alignmentRole(index);
+	}
+	else if(role == Qt::ForegroundRole)
+	{
+		return textColorRole(index);
+	}
 	return QVariant();
 }
 
-QHash<int, QByteArray> MoneyModel::roleNames() const
+bool WIMMModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-	QHash<int, QByteArray> result;
-	result[ RecordIdRole] = "recordId";
-	result[ CategoryIdRole] = "categoryId";
-	result[ CategoryNameRole] = "categoryName";
-	result[ FirstHalfIncomeRole] = "firstHalfIncome";
-	result[ FirstHalfOutcomeRole] = "firstHalfOutcome";
-	result[ SecondHalfIncomeRole] = "secondHalfIncome";
-	result[ SecondHalfOutcomeRole] = "secondHalfOutcome";
+	if(role != Qt::EditRole && role != Qt::DisplayRole)
+	{
+		return false;
+	}
 
-	return result;
+	///TODO: Implement!
+
+	return true;
 }
 
-QVariant MoneyModel::headerData(int section, Qt::Orientation orientation, int role) const
+Qt::ItemFlags WIMMModel::flags(const QModelIndex &index) const
 {
-#ifdef QMLVERSION
-	return QAbstractListModel::headerData(section, orientation, role);
-#else
+	Qt::ItemFlags flags = QAbstractItemModel::flags(index);
 
+	WIMMItem *item = itemForIndex(index);
+	if(!item)
+	{
+		return flags;
+	}
+
+	if(item->level() == Category && index.column() != COL_Title)
+	{
+		flags	|= Qt::ItemIsEditable;
+	}
+
+	return flags;
+}
+
+QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
 	if(orientation != Qt::Horizontal || role != Qt::DisplayRole)
 	{
 		return QVariant();
 	}
 
-	if(section == COL_RecordId)
+	if(section == COL_DbId)
 	{
 		return "БД";
 	}
-	else if(section == COL_Category)
+	else if(section == COL_Title)
 	{
 		return "Категория";
 	}
@@ -130,6 +190,10 @@ QVariant MoneyModel::headerData(int section, Qt::Orientation orientation, int ro
 	{
 		return "- (I)";
 	}
+	else if(section == COL_FirstHalfEst)
+	{
+		return "? (I)";
+	}
 	else if(section == COL_SecondHalfIn)
 	{
 		return "+ (II)";
@@ -138,312 +202,278 @@ QVariant MoneyModel::headerData(int section, Qt::Orientation orientation, int ro
 	{
 		return "- (II)";
 	}
+	else if(section == COL_SecondHalfEst)
+	{
+		return "? (II)";
+	}
 
-	return QAbstractTableModel::headerData(section, orientation, role);
-#endif
+	return QAbstractItemModel::headerData(section, orientation, role);
 }
 
-QVariant MoneyModel::displayRole(const QModelIndex &index) const
+QVariant WIMMModel::displayRole(const QModelIndex &index) const
 {
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
 	int col = index.column();
-	const MoneyData &md = mData[index.row()];
 
-	if(col == COL_RecordId)
+	if(col == COL_DbId)
 	{
-		return md.recordId;
+		return item->id();
 	}
-	else if(col == COL_Category)
+	else if(col == COL_Title)
 	{
-		QString result = md.categoryName;
-		if(md.recordId < 0)
-		{
-			result += " *";
-		}
+		return item->name();
+	}
+	else if(col == COL_FirstHalfIn )
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstIn));
+	}
+	else if(col == COL_FirstHalfOut )
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstOut));
+	}
+	else if(col == COL_FirstHalfEst )
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::FirstEst));
+	}
+	else if(col == COL_SecondHalfIn )
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondIn));
+	}
+	else if(col == COL_SecondHalfOut )
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondOut));
+	}
+	else if(col == COL_SecondHalfEst)
+	{
+		return QLocale::system().toCurrencyString( item ->value(WIMMItem::SecondEst));
+	}
 
-		return result;
+	return QVariant();
+}
+
+QVariant WIMMModel::editRole(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() != Category)
+	{
+		return QVariant();
+	}
+
+	int col = index.column();
+
+	CategoryItem *category = dynamic_cast<CategoryItem*>(item);
+	Q_ASSERT(category);
+
+	if(col == COL_DbId)
+	{
+		return category->id();
+	}
+	else if(col == COL_Title)
+	{
+		return category->name();
 	}
 	else if(col == COL_FirstHalfIn)
 	{
-		return md.firstHalfIncome;
+		return category->firstHalfIncome();
 	}
 	else if(col == COL_SecondHalfIn)
 	{
-		return md.secondHalfIncome;
+		return category->secondHalfIncome();
+	}
+	else if(col == COL_SecondHalfEst)
+	{
+		return category->secondHalfEstimated();
 	}
 	else if(col == COL_FirstHalfOut)
 	{
-		return md.firstHalfOutcome;
+		return category->firstHalfOutcome();
 	}
 	else if(col == COL_SecondHalfOut)
 	{
-		return md.secondHalfOutcome;
+		return category->secondHalfOutcome();
+	}
+	else if(col == COL_SecondHalfEst)
+	{
+		return category->secondHalfEstimated();
 	}
 
 	return QVariant();
 }
 
-QVariant MoneyModel::editRole(const QModelIndex &index) const
+QVariant WIMMModel::decorationRole(const QModelIndex &index) const
 {
+	return QVariant();
+}
+
+QVariant WIMMModel::backgroundRole(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
 	int col = index.column();
-	const MoneyData &md = mData[index.row()];
 
-	if(col == COL_RecordId)
+	if(item->level() == Category)
 	{
-		return md.recordId;
+		if(col == COL_FirstHalfIn || col == COL_SecondHalfIn)
+		{
+			return QColor(230, 255, 230);
+		}
+		else if(col == COL_FirstHalfOut || col == COL_SecondHalfOut)
+		{
+			return QColor(255, 230, 230);
+		}
+		else if(col == COL_FirstHalfEst || col == COL_SecondHalfEst)
+		{
+			return QColor(240, 240, 255);
+		}
 	}
-	else if(col == COL_Category)
+	/*else if(item->level() == Group)
 	{
-		return md.categoryId;
+		return QColor(240, 240, 240);
 	}
-	else if(col == COL_FirstHalfIn)
+	else if(item->level() == Month)
 	{
-		return md.firstHalfIncome;
+		return QColor(220, 220, 220);
+	}*/
+
+	return QVariant();
+}
+
+QVariant WIMMModel::fontRole(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	QFont f = QApplication::font();
+
+	if(item->level() == Month)
+	{
+		f.setBold(true);
+		f.setPointSize( f.pointSize() + 2 );
 	}
-	else if(col == COL_SecondHalfIn)
+	else if(item->level() == Group)
 	{
-		return md.secondHalfIncome;
+		f.setPointSize( f.pointSize() + 1 );
 	}
-	else if(col == COL_FirstHalfOut)
+
+	return f;
+}
+
+QVariant WIMMModel::textColorRole(const QModelIndex &index) const
+{
+	if(index.column() == COL_FirstHalfEst || index.column() == COL_SecondHalfEst)
 	{
-		return md.firstHalfOutcome;
-	}
-	else if(col == COL_SecondHalfOut)
-	{
-		return md.secondHalfOutcome;
+		return QColor(100,100,100);
 	}
 
 	return QVariant();
 }
 
-bool MoneyModel::submit()
+QVariant WIMMModel::alignmentRole(const QModelIndex &index) const
 {
-	return true;
-}
-
-void MoneyModel::revert()
-{
-}
-
-///****
-
-WIMMObject::WIMMObject(QObject *parent) : QObject(parent), mId(-1), mYear(-1), mMonth(-1)
-{
-	mMoneyModel = new MoneyModel(this);
-
-	connect(mMoneyModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SIGNAL(moneyModelChanged()));
-}
-
-WIMMObject::~WIMMObject()
-{
-	mMoneyModel->deleteLater();
-}
-
-
-
-void WIMMObject::setId(int id)
-{
-	if(mId != id)
+	if(index.column() != COL_Title)
 	{
-		mId = id;
-		emit idChanged();
-	}
-}
-
-void WIMMObject::setYear(int year)
-{
-	if(mYear != year)
-	{
-		mYear = year;
-		emit yearChanged();
-	}
-}
-
-void WIMMObject::setMonth(int month)
-{
-	if(mMonth != month )
-	{
-		mMonth = month;
-		emit monthChanged();
-	}
-}
-
-void WIMMObject::addMoneyData(MoneyData md)
-{
-	Q_ASSERT(mMoneyModel);
-	mMoneyModel->addMoneyData( md );
-	emit moneyModelChanged();
-}
-
-
-///****
-
-QList<QObject *> DataLoader::loadData()
-{
-	QList<QObject*> objs;
-
-	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "wimm");
-	db.setDatabaseName("wimm.db");
-	if(!db.open())
-	{
-		qDebug()<<"Database not open. Error "<<db.lastError().text();
-		return objs;
-	}
-
-	QSqlQuery query(db);
-	query.prepare("SELECT id, year, month FROM months ORDER BY year, month");
-
-	if(!query.exec())
-	{
-		qDebug()<<"Ошибка выполнения запроса"<<query.lastError();
-		return objs;
-	}
-
-	while(query.next())
-	{
-		QSqlRecord rec = query.record();
-
-		WIMMObject *obj = new WIMMObject();
-		obj->setId( rec.value("id").toInt() );
-		obj->setYear( rec.value("year").toInt() );
-		obj->setMonth( rec.value("month").toInt() );
-
-		if(!loadMoneyData(obj))
-		{
-			continue;
-		}
-
-		objs << obj;
-	}
-
-	db.close();
-
-	return objs;
-}
-
-WIMMModel *DataLoader::loadModel()
-{
-	return new WIMMModel();
-}
-
-
-bool DataLoader::loadMoneyData(WIMMObject *obj)
-{
-	Q_ASSERT(obj);
-
-	QSqlQuery query( QSqlDatabase::database("wimm"));
-	query.prepare("SELECT m.id AS id, m.category_id AS category_id, c.name AS category_name, "
-				  "m.first_half_income, m.first_half_outcome, m.second_half_income, m.second_half_outcome "
-				  "FROM money m JOIN categories c ON m.category_id=c.id "
-				  "WHERE month_id=:month_id");
-	query.bindValue(":month_id", obj->id());
-
-	if(!query.exec())
-	{
-		qDebug()<<"Ошибка выборки данных по деньгам"<<query.lastError();
-		return false;
-	}
-
-	while(query.next())
-	{
-		QSqlRecord rec = query.record();
-
-		MoneyData md;
-		md.recordId = rec.value("id").toInt();
-		md.categoryId = rec.value("category_id").toInt();
-		md.categoryName = rec.value("category_name").toString();
-		md.firstHalfIncome = rec.value("first_half_income").toDouble();
-		md.firstHalfOutcome = rec.value("first_half_outcome").toDouble();
-		md.secondHalfIncome = rec.value("second_half_income").toDouble();
-		md.secondHalfOutcome = rec.value("second_half_outcome").toDouble();
-
-		obj->addMoneyData(md);
-	}
-
-	return true;
-}
-
-
-WIMMModel::WIMMModel(QObject *parent) : QAbstractListModel(parent)
-{
-	mObjects = DataLoader::loadData();
-	mIsDirty = false;
-}
-
-WIMMModel::~WIMMModel()
-{
-	qDeleteAll(mObjects);
-}
-
-WIMMObject *WIMMModel::objectAt(const QModelIndex &index)
-{
-	return qobject_cast<WIMMObject*>(mObjects[index.row()]);
-}
-
-bool WIMMModel::appendObject(WIMMObject *obj)
-{
-	if(mObjects.contains(obj))
-	{
-		return false;
-	}
-
-	int row = rowCount();
-
-	beginInsertRows(QModelIndex(), row, row);
-	mObjects << obj;
-	mIsDirty = true;
-	endInsertRows();
-
-	return true;
-}
-
-int WIMMModel::rowCount(const QModelIndex &parent) const
-{
-	Q_UNUSED(parent);
-	return mObjects.count();
-}
-
-QVariant WIMMModel::data(const QModelIndex &index, int role) const
-{
-	Q_ASSERT(index.row() >=0 && index.row() <= rowCount());
-
-	if(role == Qt::DisplayRole)
-	{
-		WIMMObject *obj = qobject_cast<WIMMObject*>( mObjects[index.row()] );
-		Q_ASSERT(obj);
-
-		QString string = QString("%0 %1").arg(obj->year()).arg(QDate::longMonthName(obj->month(), QDate::StandaloneFormat));
-		if(obj->id() < 0 || obj->moneyModel()->isDirty())
-		{
-			string += " *";
-		}
-		return string;
+		return Qt::AlignCenter;
 	}
 
 	return QVariant();
 }
 
-
-
-bool WIMMModel::removeRows(int row, int count, const QModelIndex &parent)
+WIMMItem *WIMMModel::itemForIndex(const QModelIndex &index) const
 {
-	beginRemoveRows(parent, row, row + count -1 );
+	WIMMItem *item = static_cast<WIMMItem*>(index.internalPointer());
+	return item;
+}
 
-	for(int i = 0; i < count; ++i)
+QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) const
+{
+	Q_UNUSED(column);
+
+	if(parent.isValid())
 	{
-		delete mObjects.takeAt(row);
+		WIMMItem *item = itemForIndex(parent);
+		if(item->level() == Month)
+		{
+			MonthItem *month = dynamic_cast<MonthItem*>(item);
+			Q_ASSERT(month); /// wtf?
+
+			if(row < 0 || row >= month->groups().count())
+			{
+				return QModelIndex();
+			}
+
+			return createIndex(row, column, month->groups().at(row));
+		}
+		else if(item->level() == Group)
+		{
+			GroupItem *group = dynamic_cast<GroupItem*>(item);
+			Q_ASSERT(group); /// wtf?
+
+			if(row < 0 || row >= group->categories().count())
+			{
+				return QModelIndex();
+			}
+
+			return createIndex(row, column, group->categories().at(row));
+		}
+		else
+		{
+			// Этого быть не должно
+			return QModelIndex();
+		}
 	}
 
-	endRemoveRows();
+	if(row < 0 || row >= mData.count())
+	{
+		return QModelIndex();
+	}
 
-	return true;
+	return createIndex(row, column, mData[row]);
 }
 
-
-bool WIMMModel::submit()
+QModelIndex WIMMModel::parent(const QModelIndex &child) const
 {
-	return true;
-}
+	WIMMItem *item = itemForIndex(child);
 
-void WIMMModel::revert()
-{
+	if(!item)
+	{
+		return QModelIndex();
+	}
+
+	if(item->level() == Month)
+	{
+		return QModelIndex();
+	}
+	else if(item->level() == Group)
+	{
+		GroupItem *group = dynamic_cast<GroupItem*>(item);
+		Q_ASSERT(group);
+
+		int row = mData.indexOf(group->month());
+		if(row < 0)
+		{
+			return QModelIndex();
+		}
+
+		return createIndex(row, 0, group->month());
+	}
+	else if(item->level() == Category)
+	{
+		CategoryItem *category = dynamic_cast<CategoryItem*>(item);
+		Q_ASSERT(category);
+
+		int row = category->group()->month()->groups().indexOf(category->group());
+		if(row < 0)
+		{
+			return QModelIndex();
+		}
+
+		return createIndex(row, 0, category->group());
+	}
+
+	return QModelIndex();
 }
