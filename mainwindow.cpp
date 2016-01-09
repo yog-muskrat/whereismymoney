@@ -12,10 +12,12 @@
 #include <QMenu>
 #include <QDate>
 #include <QDebug>
+#include <QTimer>
 #include <QLocale>
 #include <QSettings>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QFontDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -169,32 +171,6 @@ void MainWindow::on_pbRemoveMonth_clicked()
 	pModel->removeMonth(id);
 }
 
-void MainWindow::on_pbEditCategories_clicked()
-{
-	CategoriesEditor ed;
-	if(! ed.exec())
-	{
-		return;
-	}
-
-	QModelIndex idx = ui->listView->currentIndex();
-
-	int id = pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
-
-	pModel->clear();
-	pModel->addMonths( SqlTools::loadMonths() );
-
-	if(id > 0)
-	{
-		QModelIndex newIndex = pModel->monthIndex( id);
-		if(!newIndex.isValid())
-		{
-			return;
-		}
-		ui->listView->setCurrentIndex( newIndex );
-	}
-}
-
 void MainWindow::calcTotals()
 {
 	double income = 0;
@@ -203,9 +179,8 @@ void MainWindow::calcTotals()
 	ui->summaryTree->clear();
 	ui->summaryTree->setColumnCount(4);
 	ui->summaryTree->setHeaderLabels( QStringList() << "Категория" << QChar(0x002b) << QChar(0x2212) << "=");
-	QFont f = QApplication::font();
+	QFont f = qApp->font();
 	f.setBold(true);
-	f.setPointSize( f.pointSize() + 1 );
 	ui->summaryTree->headerItem()->setFont(0, f);
 	ui->summaryTree->headerItem()->setFont(1, f);
 	ui->summaryTree->headerItem()->setFont(2, f);
@@ -322,6 +297,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
 	set.setValue("geometry", saveGeometry());
 	set.setValue("splitter", ui->splitter->saveState());
 	set.setValue("summary", ui->pbSummary->isChecked());
+	set.setValue("font", qApp->font());
 
 	QMainWindow::closeEvent(e);
 }
@@ -333,6 +309,9 @@ void MainWindow::showEvent(QShowEvent *e)
 	ui->splitter->restoreState(set.value("splitter").toByteArray());
 	ui->pbSummary->setChecked( set.value("summary", true).toBool());
 
+	QFont f = set.value("font", qApp->font()).value<QFont>();
+	qApp->setFont(f);
+
 	QMainWindow::showEvent(e);
 
 }
@@ -341,4 +320,44 @@ void MainWindow::createMenu()
 {
 	pMenu = new QMenu(this);
 	pMenu->addAction(QIcon(":comment"), "Комментарий", this, SLOT(onEditComment()));
+}
+
+void MainWindow::on_action_categories_triggered()
+{
+	CategoriesEditor ed;
+	if(! ed.exec())
+	{
+		return;
+	}
+
+	QModelIndex idx = ui->listView->currentIndex();
+
+	int id = pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
+
+	pModel->clear();
+	pModel->addMonths( SqlTools::loadMonths() );
+
+	if(id > 0)
+	{
+		QModelIndex newIndex = pModel->monthIndex( id);
+		if(!newIndex.isValid())
+		{
+			return;
+		}
+		ui->listView->setCurrentIndex( newIndex );
+	}
+}
+
+void MainWindow::on_action_fonts_triggered()
+{
+	QFont f = qApp->font();
+	bool ok = false;
+	QFont newFont = QFontDialog::getFont(&ok, f, this, "Настройка шрифта");
+
+	if(!ok)
+	{
+		return;
+	}
+
+	qApp->setFont(newFont);
 }

@@ -23,10 +23,11 @@ private slots:
 	void onSelectionChanged();
 	void on_pbAddMonth_clicked();
 	void on_pbRemoveMonth_clicked();
-	void on_pbEditCategories_clicked();
 	void calcTotals();
 	void onMenuRequested(const QPoint &p);
 	void onEditComment();
+	void on_action_categories_triggered();
+	void on_action_fonts_triggered();
 
 protected:
 	virtual void closeEvent(QCloseEvent *e);

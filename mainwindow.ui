@@ -211,13 +211,6 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QPushButton" name="pbEditCategories">
-        <property name="text">
-         <string>Настройка категорий</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -253,6 +246,34 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1165</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Меню</string>
+    </property>
+    <addaction name="action_categories"/>
+    <addaction name="action_fonts"/>
+   </widget>
+   <addaction name="menu"/>
+  </widget>
+  <action name="action_categories">
+   <property name="text">
+    <string>Настройка категорий</string>
+   </property>
+  </action>
+  <action name="action_fonts">
+   <property name="text">
+    <string>Настройка шрифта</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>

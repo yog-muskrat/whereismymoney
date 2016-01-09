@@ -439,7 +439,6 @@ QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int rol
 	{
 		QFont f = qApp->font();
 		f.setBold(true);
-		f.setPointSize( f.pointSize() + 1 );
 		return f;
 	}
 	else if(role == Qt::TextAlignmentRole)
@@ -614,7 +613,7 @@ QVariant WIMMModel::fontRole(const QModelIndex &index) const
 	WIMMItem *item = itemForIndex(index);
 	Q_ASSERT(item);
 
-	QFont f = QApplication::font();
+	QFont f = qApp->font();
 
 	if(item->level() == Month)
 	{
