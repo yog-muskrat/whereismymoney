@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file alias="comment">images/comment.png</file>
+        <file alias="icon">images/icon.png</file>
     </qresource>
 </RCC>

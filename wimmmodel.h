@@ -1,10 +1,9 @@
 #ifndef WIMMMODEL
 #define WIMMMODEL
 
-#include <QAbstractItemModel>
+#include "structs.h"
 
-class MonthItem;
-class WIMMItem;
+#include <QAbstractItemModel>
 
 /*!
  * \brief Класс модели данных с цифрами по одной категории затрат за один месяц
@@ -39,6 +38,8 @@ public:
 
 	QString comment(const QModelIndex &index) const;
 	void setComment(const QModelIndex &index, QString comment);
+
+	ItemLevel indexLevel(const QModelIndex &index) const;
 
 	void clear();
 

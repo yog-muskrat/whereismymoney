@@ -1,6 +1,5 @@
 #include "wimmmodel.h"
 #include "sqltools.h"
-#include "structs.h"
 #include "tools.h"
 
 #include <QIcon>
@@ -220,6 +219,14 @@ void WIMMModel::setComment(const QModelIndex &index, QString comment)
 			emit dataChanged(index, index);
 		}
 	}
+}
+
+ItemLevel WIMMModel::indexLevel(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	return item->level();
 }
 
 void WIMMModel::clear()

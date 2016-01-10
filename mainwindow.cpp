@@ -50,6 +50,13 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->treeView->setColumnHidden(WIMMModel::COL_DbId, true);
 	ui->treeView->resizeColumnToContents(WIMMModel::COL_Title);
 	ui->treeView->setContextMenuPolicy( Qt::CustomContextMenu );
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_Title, QHeaderView::ResizeToContents);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_FirstHalfIn, QHeaderView::Stretch);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_FirstHalfOut, QHeaderView::Stretch);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_FirstHalfEst, QHeaderView::Stretch);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_SecondHalfIn, QHeaderView::Stretch);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_SecondHalfOut, QHeaderView::Stretch);
+	ui->treeView->header()->setSectionResizeMode( WIMMModel::COL_SecondHalfEst, QHeaderView::Stretch);
 
 	QPalette p = ui->lblIncome->palette();
 	p.setColor( QPalette::Foreground, QColor(0, 84, 0));
@@ -100,15 +107,15 @@ void MainWindow::onSelectionChanged()
 
 	pFilterModel->setMonthsFilter(filter);
 	ui->treeView->expandAll();
-	for(int i = 0; i < ui->treeView->model()->columnCount(); ++i)
-	{
-		if(ui->treeView->isColumnHidden(i))
-		{
-			continue;
-		}
+//	for(int i = 0; i < ui->treeView->model()->columnCount(); ++i)
+//	{
+//		if(ui->treeView->isColumnHidden(i))
+//		{
+//			continue;
+//		}
 
-		ui->treeView->resizeColumnToContents(i);
-	}
+//		ui->treeView->resizeColumnToContents(i);
+//	}
 }
 
 void MainWindow::on_pbAddMonth_clicked()
@@ -179,6 +186,10 @@ void MainWindow::calcTotals()
 	ui->summaryTree->clear();
 	ui->summaryTree->setColumnCount(4);
 	ui->summaryTree->setHeaderLabels( QStringList() << "Категория" << QChar(0x002b) << QChar(0x2212) << "=");
+	ui->summaryTree->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+	ui->summaryTree->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+	ui->summaryTree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+	ui->summaryTree->header()->setSectionResizeMode(3, QHeaderView::Stretch);
 	QFont f = qApp->font();
 	f.setBold(true);
 	ui->summaryTree->headerItem()->setFont(0, f);
@@ -346,6 +357,8 @@ void MainWindow::on_action_categories_triggered()
 		}
 		ui->listView->setCurrentIndex( newIndex );
 	}
+
+	calcTotals();
 }
 
 void MainWindow::on_action_fonts_triggered()
