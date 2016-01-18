@@ -7,6 +7,7 @@
 #include <QColor>
 #include <QDebug>
 #include <QApplication>
+#include <QSettings>
 
 WIMMModel::WIMMModel(QObject *parent)
 	: QAbstractItemModel(parent)
@@ -460,7 +461,8 @@ QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int rol
 	}
 	else if(role == Qt::FontRole)
 	{
-		QFont f = qApp->font();
+		QSettings set("mudbay", "wimm");
+		QFont f = set.value("font", qApp->font()).value<QFont>();
 		f.setBold(true);
 		return f;
 	}

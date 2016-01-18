@@ -181,7 +181,8 @@ void MainWindow::calcTotals()
 	ui->summaryTree->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 	ui->summaryTree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 	ui->summaryTree->header()->setSectionResizeMode(3, QHeaderView::Stretch);
-	QFont f = qApp->font();
+	QSettings set("mudbay", "wimm");
+	QFont f = set.value("font", qApp->font()).value<QFont>();
 	f.setBold(true);
 	ui->summaryTree->headerItem()->setFont(0, f);
 	ui->summaryTree->headerItem()->setFont(1, f);
@@ -192,12 +193,13 @@ void MainWindow::calcTotals()
 	ui->summaryTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
 	ui->summaryTree->headerItem()->setTextAlignment(3, Qt::AlignCenter);
 
+	f.setPointSize( f.pointSize() +1 );
+
 	QTreeWidgetItem *root = new QTreeWidgetItem(ui->summaryTree);
 	root->setText(0, "Всего");
 	root->setData(0, Qt::UserRole, "root");
 	root->setData(0, Qt::UserRole+1, -1);
 	root->setFirstColumnSpanned(true);
-	f.setPointSize( f.pointSize()+1 );
 	root->setFont(0, f);
 
 	QList<GroupItem*> items = SqlTools::loadSummary();

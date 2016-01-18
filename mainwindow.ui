@@ -121,6 +121,12 @@
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
+          <property name="indentation">
+           <number>0</number>
+          </property>
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
           <property name="itemsExpandable">
            <bool>false</bool>
           </property>
@@ -258,7 +264,7 @@
      <x>0</x>
      <y>0</y>
      <width>1165</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
