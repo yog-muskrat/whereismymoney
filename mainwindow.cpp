@@ -107,15 +107,6 @@ void MainWindow::onSelectionChanged()
 
 	pFilterModel->setMonthsFilter(filter);
 	ui->treeView->expandAll();
-//	for(int i = 0; i < ui->treeView->model()->columnCount(); ++i)
-//	{
-//		if(ui->treeView->isColumnHidden(i))
-//		{
-//			continue;
-//		}
-
-//		ui->treeView->resizeColumnToContents(i);
-//	}
 }
 
 void MainWindow::on_pbAddMonth_clicked()
@@ -201,12 +192,22 @@ void MainWindow::calcTotals()
 	ui->summaryTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
 	ui->summaryTree->headerItem()->setTextAlignment(3, Qt::AlignCenter);
 
+	QTreeWidgetItem *root = new QTreeWidgetItem(ui->summaryTree);
+	root->setText(0, "Всего");
+	root->setData(0, Qt::UserRole, "root");
+	root->setData(0, Qt::UserRole+1, -1);
+	root->setFirstColumnSpanned(true);
+	f.setPointSize( f.pointSize()+1 );
+	root->setFont(0, f);
+
 	QList<GroupItem*> items = SqlTools::loadSummary();
 
 	foreach(GroupItem* group, items)
 	{
-		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(ui->summaryTree);
+		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(root);
 		groupTreeItem->setText(0, group->name());
+		groupTreeItem->setData(0, Qt::UserRole, "group");
+		groupTreeItem->setData(0, Qt::UserRole +1 , group->id());
 
 		double groupIncome = group->value(WIMMItem::FirstIn) + group->value(WIMMItem::SecondIn);
 		double groupOutcome = group->value(WIMMItem::FirstOut) + group->value(WIMMItem::SecondOut);
@@ -234,6 +235,8 @@ void MainWindow::calcTotals()
 		{
 			QTreeWidgetItem *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
 			categoryTreeItem->setText(0, category->name());
+			categoryTreeItem->setData(0, Qt::UserRole, "category");
+			categoryTreeItem->setData(0, Qt::UserRole +1 , category->categoryId());
 
 			double categoryIncome = category->value(WIMMItem::FirstIn) + category->value(WIMMItem::SecondIn);
 			double categoryOutcome = category->value(WIMMItem::FirstOut) + category->value(WIMMItem::SecondOut);
@@ -373,4 +376,59 @@ void MainWindow::on_action_fonts_triggered()
 	}
 
 	qApp->setFont(newFont);
+}
+
+void MainWindow::on_treeView_clicked(const QModelIndex &index)
+{
+	Q_ASSERT(ui->summaryTree->topLevelItemCount() > 0);
+
+	QTreeWidgetItem *root = ui->summaryTree->topLevelItem(0);
+	ui->summaryTree->clearSelection();
+
+	QModelIndex idx = pFilterModel->mapToSource(index);
+	ItemLevel level = pModel->indexLevel( idx );
+
+	if(level == Month)
+	{
+		root->setSelected(true);
+		return;
+	}
+
+	int id = pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
+
+	if(level == Category)
+	{
+		id = pModel->categoryId(idx);
+	}
+
+	if(id < 0)
+	{
+		return;
+	}
+
+	for(int i = 0; i < root->childCount(); ++i)
+	{
+		QTreeWidgetItem *item = root->child(i);
+		int itemId = item->data(0, Qt::UserRole+1).toInt();
+
+		if(level == Group && itemId == id)
+		{
+			item->setSelected(true);
+			break;
+		}
+		else if(level == Category)
+		{
+			for(int j = 0; j < item->childCount(); j++)
+			{
+				QTreeWidgetItem *child = item->child(j);
+				int childId = child->data(0, Qt::UserRole+1).toInt();
+
+				if(childId == id)
+				{
+					child->setSelected(true);
+					break;
+				}
+			}
+		}
+	}
 }

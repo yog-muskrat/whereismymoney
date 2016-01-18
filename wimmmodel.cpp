@@ -229,6 +229,22 @@ ItemLevel WIMMModel::indexLevel(const QModelIndex &index) const
 	return item->level();
 }
 
+int WIMMModel::categoryId(const QModelIndex &index) const
+{
+	WIMMItem *item = itemForIndex(index);
+	Q_ASSERT(item);
+
+	if(item->level() != Category)
+	{
+		return -1;
+	}
+
+	CategoryItem *category = dynamic_cast<CategoryItem*>(item);
+	Q_ASSERT(category);
+
+	return category->categoryId();
+}
+
 void WIMMModel::clear()
 {
 	if(rowCount() == 0)

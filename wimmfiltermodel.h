@@ -11,6 +11,8 @@ public:
 	void setMonthsFilter(QList<int> monthsIds);
 	void clearMonthsFilter();
 
+	virtual QVariant data(const QModelIndex &index, int role) const;
+
 protected:
 	bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const;
 

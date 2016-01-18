@@ -121,6 +121,12 @@
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
+          <property name="itemsExpandable">
+           <bool>false</bool>
+          </property>
+          <property name="expandsOnDoubleClick">
+           <bool>false</bool>
+          </property>
           <attribute name="headerVisible">
            <bool>true</bool>
           </attribute>
@@ -252,7 +258,7 @@
      <x>0</x>
      <y>0</y>
      <width>1165</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

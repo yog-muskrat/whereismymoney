@@ -40,6 +40,7 @@ public:
 	void setComment(const QModelIndex &index, QString comment);
 
 	ItemLevel indexLevel(const QModelIndex &index) const;
+	int categoryId(const QModelIndex &index) const;
 
 	void clear();
 

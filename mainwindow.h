@@ -29,14 +29,14 @@ private slots:
 	void on_action_categories_triggered();
 	void on_action_fonts_triggered();
 
+	void on_treeView_clicked(const QModelIndex &index);
+
 protected:
 	virtual void closeEvent(QCloseEvent *e);
 	virtual void showEvent(QShowEvent *e);
 
 private:
 	void createMenu();
-
-	void fillTotalsTree(QList<int> months);
 
 	Ui::MainWindow *ui;
 
