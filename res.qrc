@@ -2,5 +2,9 @@
     <qresource prefix="/">
         <file alias="comment">images/comment.png</file>
         <file alias="icon">images/icon.png</file>
+        <file alias="money">images/money.png</file>
+        <file alias="redo">images/redo.png</file>
+        <file alias="undo">images/undo.png</file>
+        <file alias="save">images/save.png</file>
     </qresource>
 </RCC>

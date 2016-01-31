@@ -3,7 +3,10 @@
 
 #include <QMainWindow>
 
+#include <QMap>
+
 class QMenu;
+class QAction;
 class WIMMModel;
 class WIMMFilterModel;
 
@@ -26,10 +29,12 @@ private slots:
 	void calcTotals();
 	void onMenuRequested(const QPoint &p);
 	void onEditComment();
+	void onAddMoney();
 	void on_action_categories_triggered();
 	void on_action_fonts_triggered();
-
 	void on_treeView_clicked(const QModelIndex &index);
+	void setDirty(bool dirty = true);
+	void onSave();
 
 protected:
 	virtual void closeEvent(QCloseEvent *e);
@@ -43,6 +48,8 @@ private:
 	WIMMModel *pModel;
 	WIMMFilterModel *pFilterModel;
 	QMenu *pMenu;
+	QMap<QString, QAction*> mActions;
+	bool mDirty;
 };
 
 #endif // MAINWINDOW_H

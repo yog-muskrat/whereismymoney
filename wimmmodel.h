@@ -5,12 +5,13 @@
 
 #include <QAbstractItemModel>
 
-/*!
- * \brief Класс модели данных с цифрами по одной категории затрат за один месяц
- */
+class QUndoStack;
+
 class WIMMModel : public QAbstractItemModel
 {
 	Q_OBJECT
+
+	friend class ChangeValueCommand;
 public:
 	WIMMModel(QObject *parent = 0);
 	~WIMMModel();
@@ -34,7 +35,7 @@ public:
 	QModelIndex monthIndex(int year, int month) const;
 	int monthId(const QModelIndex &index) const;
 
-	bool hasComment(const QModelIndex &index) const;
+	bool isMoneyIndex(const QModelIndex &index) const;
 
 	QString comment(const QModelIndex &index) const;
 	void setComment(const QModelIndex &index, QString comment);
@@ -44,12 +45,16 @@ public:
 
 	void clear();
 
+	bool save();
+
+	QUndoStack *undoStack(){return pUndoStack;}
+
 	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-	virtual bool setData(const QModelIndex &index, const QVariant &value, int role);
+	virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
 	virtual Qt::ItemFlags flags(const QModelIndex &index) const;
-	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+	virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 	virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
 	virtual QModelIndex parent(const QModelIndex &child) const;
 
@@ -65,7 +70,10 @@ private:
 
 	WIMMItem* itemForIndex(const QModelIndex &index) const;
 
+	void emitDataChanged(const QModelIndex &index);
+
 	QList<MonthItem*> mData;
+	QUndoStack *pUndoStack;
 
 };
 

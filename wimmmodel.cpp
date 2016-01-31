@@ -1,17 +1,20 @@
 #include "wimmmodel.h"
 #include "sqltools.h"
 #include "tools.h"
+#include "changevaluecommand.h"
 
 #include <QIcon>
 #include <QFont>
 #include <QColor>
 #include <QDebug>
-#include <QApplication>
 #include <QSettings>
+#include <QUndoStack>
+#include <QApplication>
 
 WIMMModel::WIMMModel(QObject *parent)
 	: QAbstractItemModel(parent)
 {
+	pUndoStack = new QUndoStack(this);
 }
 
 WIMMModel::~WIMMModel()
@@ -116,7 +119,7 @@ int WIMMModel::monthId(const QModelIndex &index) const
 	return -1;
 }
 
-bool WIMMModel::hasComment(const QModelIndex &index) const
+bool WIMMModel::isMoneyIndex(const QModelIndex &index) const
 {
 	WIMMItem *item = itemForIndex(index);
 	Q_ASSERT(item);
@@ -137,7 +140,7 @@ bool WIMMModel::hasComment(const QModelIndex &index) const
 
 QString WIMMModel::comment(const QModelIndex &index) const
 {
-	if(hasComment(index))
+	if(isMoneyIndex(index))
 	{
 		CategoryItem *item = dynamic_cast<CategoryItem*>( itemForIndex(index));
 		Q_ASSERT(item);
@@ -175,7 +178,7 @@ QString WIMMModel::comment(const QModelIndex &index) const
 
 void WIMMModel::setComment(const QModelIndex &index, QString comment)
 {
-	if(hasComment(index))
+	if(isMoneyIndex(index))
 	{
 		CategoryItem *item = dynamic_cast<CategoryItem*>( itemForIndex(index));
 		Q_ASSERT(item);
@@ -257,6 +260,24 @@ void WIMMModel::clear()
 	qDeleteAll(mData);
 	mData.clear();
 	endRemoveRows();
+}
+
+bool WIMMModel::save()
+{
+	foreach(MonthItem *month, mData)
+	{
+		foreach(GroupItem *group, month->groups())
+		{
+			foreach(CategoryItem *category, group->categories())
+			{
+				if(!category->save())
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
 
 int WIMMModel::columnCount(const QModelIndex &parent) const
@@ -353,47 +374,9 @@ bool WIMMModel::setData(const QModelIndex &index, const QVariant &value, int rol
 	CategoryItem* category = dynamic_cast<CategoryItem*>(item);
 	Q_ASSERT(category);
 
-	int col = index.column();
-
-	bool changed = false;
-
-	if(col == COL_FirstHalfIn)
+	if(isMoneyIndex(index))
 	{
-		changed = true;
-		category->setFirstHalfIncome( value.toDouble() );
-	}
-	else if(col == COL_FirstHalfOut)
-	{
-		changed = true;
-		category->setFirstHalfOutcome( value.toDouble() );
-	}
-	else if(col == COL_FirstHalfEst)
-	{
-		changed = true;
-		category->setFirstHalfEstimated( value.toDouble() );
-	}
-	else if(col == COL_SecondHalfIn)
-	{
-		changed = true;
-		category->setSecondHalfIncome( value.toDouble() );
-	}
-	else if(col == COL_SecondHalfOut)
-	{
-		changed = true;
-		category->setSecondHalfOutcome( value.toDouble() );
-	}
-	else if(col == COL_SecondHalfEst)
-	{
-		changed = true;
-		category->setSecondHalfEstimated( value.toDouble() );
-	}
-
-	if(changed)
-	{
-		category->save();
-		QVector<int> roles;
-		roles << role;
-		emit dataChanged(index, index, roles);
+		pUndoStack->push(new ChangeValueCommand(index, value, this));
 	}
 
 	return true;
@@ -716,6 +699,11 @@ WIMMItem *WIMMModel::itemForIndex(const QModelIndex &index) const
 {
 	WIMMItem *item = static_cast<WIMMItem*>(index.internalPointer());
 	return item;
+}
+
+void WIMMModel::emitDataChanged(const QModelIndex &index)
+{
+	emit dataChanged(index, index);
 }
 
 QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) const

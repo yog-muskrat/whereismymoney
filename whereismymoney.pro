@@ -17,7 +17,8 @@ SOURCES += main.cpp \
 	categorieseditor.cpp \
 	wimmmodel.cpp \
 	structs.cpp \
-	wimmfiltermodel.cpp
+	wimmfiltermodel.cpp \
+    changevaluecommand.cpp
 
 HEADERS += \
 	mainwindow.h \
@@ -27,7 +28,8 @@ HEADERS += \
 	tools.h \
 	categorieseditor.h \
 	wimmmodel.h \
-	wimmfiltermodel.h
+	wimmfiltermodel.h \
+    changevaluecommand.h
 
 DISTFILES += \
 	bin/wimm.db

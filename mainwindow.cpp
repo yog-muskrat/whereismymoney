@@ -15,9 +15,11 @@
 #include <QTimer>
 #include <QLocale>
 #include <QSettings>
+#include <QUndoStack>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QFontDialog>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -36,6 +38,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	pModel = SqlTools::loadModel();
 	pModel->setParent(this);
+
+	QAction *act = pModel->undoStack()->createUndoAction(this);
+	act->setIcon(QIcon(":undo"));
+	act->setText("Отменить");
+	ui->menu->addAction(act);
+
+	act = pModel->undoStack()->createRedoAction(this);
+	act->setIcon(QIcon(":redo"));
+	act->setText("Повторить");
+	ui->menu->addAction(act);
 
 	pFilterModel = new WIMMFilterModel(this);
 	pFilterModel->setSourceModel(pModel);
@@ -75,6 +87,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->listView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(onSelectionChanged()));
 	connect(pFilterModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(calcTotals()));
 	connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(onMenuRequested(QPoint)));
+	connect(ui->pbSave, SIGNAL(clicked(bool)), this, SLOT(onSave()));
+	connect(pModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(setDirty()));
 
 	int year = QDate::currentDate().year();
 	int month = QDate::currentDate().month();
@@ -85,6 +99,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	{
 		ui->listView->setCurrentIndex(idx);
 	}
+
+	setDirty(false);
 }
 
 MainWindow::~MainWindow()
@@ -281,7 +297,7 @@ void MainWindow::onMenuRequested(const QPoint &p)
 
 	QModelIndex parentIndex = pFilterModel->mapToSource(idx);
 
-	if(parentIndex.isValid() && pModel->hasComment(parentIndex))
+	if(parentIndex.isValid() && pModel->isMoneyIndex(parentIndex))
 	{
 		ui->treeView->setCurrentIndex(idx);
 		pMenu->exec( ui->treeView->mapToGlobal(p) );
@@ -292,7 +308,7 @@ void MainWindow::onEditComment()
 {
 	QModelIndex idx = pFilterModel->mapToSource( ui->treeView->currentIndex() );
 
-	Q_ASSERT(pModel->hasComment(idx));
+	Q_ASSERT(pModel->isMoneyIndex(idx));
 
 	QString oldComment = pModel->comment(idx);
 
@@ -307,8 +323,44 @@ void MainWindow::onEditComment()
 	pModel->setComment(idx, newComment);
 }
 
+void MainWindow::onAddMoney()
+{
+	QModelIndex idx = pFilterModel->mapToSource( ui->treeView->currentIndex() );
+
+	Q_ASSERT(pModel->isMoneyIndex(idx));
+
+	double money = QInputDialog::getDouble(this, "Добавить сумму", "Укажите добавляемую сумму");
+
+	if(money == 0)
+	{
+		return;
+	}
+
+	double newVal = idx.data(Qt::EditRole).toDouble() + money;
+	pModel->setData(idx, newVal);
+}
+
 void MainWindow::closeEvent(QCloseEvent *e)
 {
+	if(mDirty)
+	{
+		int btn = QMessageBox::question(this, "Изменения", "Сохранить изменения?", QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+		if(btn == QMessageBox::Cancel)
+		{
+			e->ignore();
+			return;
+		}
+		else if(btn == QMessageBox::Yes)
+		{
+			onSave();
+			if(mDirty)
+			{
+				e->ignore();
+				return;
+			}
+		}
+	}
+
 	QSettings set("mudbay", "wimm");
 	set.setValue("geometry", saveGeometry());
 	set.setValue("splitter", ui->splitter->saveState());
@@ -335,7 +387,8 @@ void MainWindow::showEvent(QShowEvent *e)
 void MainWindow::createMenu()
 {
 	pMenu = new QMenu(this);
-	pMenu->addAction(QIcon(":comment"), "Комментарий", this, SLOT(onEditComment()));
+	mActions["comment"] = pMenu->addAction(QIcon(":comment"), "Комментарий", this, SLOT(onEditComment()));
+	mActions["add_money"] = pMenu->addAction(QIcon(":money"), "Добавить сумму", this, SLOT(onAddMoney()));
 }
 
 void MainWindow::on_action_categories_triggered()
@@ -433,4 +486,23 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 			}
 		}
 	}
+}
+
+void MainWindow::setDirty(bool dirty)
+{
+	mDirty = dirty;
+	ui->pbSave->setEnabled(dirty);
+	setWindowModified(dirty);
+}
+
+void MainWindow::onSave()
+{
+	if(!pModel->save())
+	{
+		return;
+	}
+
+	pModel->undoStack()->clear();
+
+	setDirty(false);
 }
