@@ -29,7 +29,7 @@ public:
 	};
 
 	void addMonths( QList<MonthItem*> items);
-	void addMonth( MonthItem* item);
+	void addMonth( MonthItem* item, bool updateEstFromPrevious = false);
 	void removeMonth(int monthId);
 	QModelIndex monthIndex(int monthId) const;
 	QModelIndex monthIndex(int year, int month) const;

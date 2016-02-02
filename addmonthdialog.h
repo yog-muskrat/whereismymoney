@@ -18,6 +18,7 @@ public:
 	int year() const ;
 	int month() const;
 	QString monthName() const;
+	bool copyPreviousEst() const;
 
 private:
 	Ui::AddMonthDialog *ui;

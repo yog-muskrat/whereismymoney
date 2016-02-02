@@ -15,11 +15,12 @@
 #include <QTimer>
 #include <QLocale>
 #include <QSettings>
+#include <QShortcut>
 #include <QUndoStack>
 #include <QMessageBox>
-#include <QInputDialog>
-#include <QFontDialog>
 #include <QCloseEvent>
+#include <QFontDialog>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -39,15 +40,36 @@ MainWindow::MainWindow(QWidget *parent) :
 	pModel = SqlTools::loadModel();
 	pModel->setParent(this);
 
-	QAction *act = pModel->undoStack()->createUndoAction(this);
+	ui->toolBar->addAction(ui->action_categories);
+	ui->toolBar->addAction(ui->action_fonts);
+
+	ui->toolBar->addSeparator();
+
+	QAction *act = ui->toolBar->addAction(QIcon(":save"), "Сохранить", this, SLOT(onSave()));
+	act->setObjectName("save");
+	act->setShortcut(QKeySequence::Save);
+
+	act = pModel->undoStack()->createUndoAction(this);
 	act->setIcon(QIcon(":undo"));
 	act->setText("Отменить");
-	ui->menu->addAction(act);
+	act->setObjectName("undo");
+	act->setShortcut(QKeySequence::Undo);
+	ui->toolBar->addAction(act);
 
 	act = pModel->undoStack()->createRedoAction(this);
 	act->setIcon(QIcon(":redo"));
 	act->setText("Повторить");
-	ui->menu->addAction(act);
+	act->setObjectName("redo");
+	act->setShortcut(QKeySequence::Redo);
+	ui->toolBar->addAction(act);
+
+	ui->toolBar->addSeparator();
+
+	act = ui->toolBar->addAction(QChar(0x2211));
+	act->setCheckable(true);
+	act->setObjectName("summary");
+
+	connect(act, SIGNAL(toggled(bool)), ui->summaryWidget, SLOT(setVisible(bool)));
 
 	pFilterModel = new WIMMFilterModel(this);
 	pFilterModel->setSourceModel(pModel);
@@ -84,10 +106,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	createMenu();
 
+	new QShortcut(QKeySequence::Copy, this, SLOT(onCopyValue()));
+	new QShortcut(QKeySequence::Paste, this, SLOT(onPasteValue()));
+
 	connect(ui->listView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(onSelectionChanged()));
 	connect(pFilterModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(calcTotals()));
 	connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(onMenuRequested(QPoint)));
-	connect(ui->pbSave, SIGNAL(clicked(bool)), this, SLOT(onSave()));
 	connect(pModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(setDirty()));
 
 	int year = QDate::currentDate().year();
@@ -149,7 +173,9 @@ void MainWindow::on_pbAddMonth_clicked()
 		return;
 	}
 
-	pModel->addMonth( item );
+	bool copyPrevEst = amd.copyPreviousEst();
+
+	pModel->addMonth( item, copyPrevEst );
 }
 
 void MainWindow::on_pbRemoveMonth_clicked()
@@ -364,8 +390,13 @@ void MainWindow::closeEvent(QCloseEvent *e)
 	QSettings set("mudbay", "wimm");
 	set.setValue("geometry", saveGeometry());
 	set.setValue("splitter", ui->splitter->saveState());
-	set.setValue("summary", ui->pbSummary->isChecked());
 	set.setValue("font", qApp->font());
+
+	QAction *act = ui->toolBar->findChild<QAction*>("summary");
+	if(act)
+	{
+		set.setValue("summary", act->isChecked());
+	}
 
 	QMainWindow::closeEvent(e);
 }
@@ -375,7 +406,12 @@ void MainWindow::showEvent(QShowEvent *e)
 	QSettings set("mudbay", "wimm");
 	restoreGeometry( set.value("geometry").toByteArray());
 	ui->splitter->restoreState(set.value("splitter").toByteArray());
-	ui->pbSummary->setChecked( set.value("summary", true).toBool());
+
+	QAction *act = ui->toolBar->findChild<QAction*>("summary");
+	if(act)
+	{
+		act->setChecked(set.value("summary", true).toBool());
+	}
 
 	QFont f = set.value("font", qApp->font()).value<QFont>();
 	qApp->setFont(f);
@@ -491,8 +527,12 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 void MainWindow::setDirty(bool dirty)
 {
 	mDirty = dirty;
-	ui->pbSave->setEnabled(dirty);
 	setWindowModified(dirty);
+	QAction *act = ui->toolBar->findChild<QAction*>("save");
+	if(act)
+	{
+		act->setEnabled(dirty);
+	}
 }
 
 void MainWindow::onSave()
@@ -505,4 +545,47 @@ void MainWindow::onSave()
 	pModel->undoStack()->clear();
 
 	setDirty(false);
+}
+
+void MainWindow::onCopyValue()
+{
+	QModelIndex idx = ui->treeView->currentIndex();
+
+	if(!idx.isValid())
+	{
+		return;
+	}
+
+	QModelIndex srcIdx = pFilterModel->mapToSource(idx);
+
+	if(!pModel->isMoneyIndex(srcIdx))
+	{
+		return;
+	}
+
+	mBuffer = srcIdx.data(Qt::EditRole);
+}
+
+void MainWindow::onPasteValue()
+{
+	if(mBuffer.isNull())
+	{
+		return;
+	}
+
+	QModelIndex idx = ui->treeView->currentIndex();
+
+	if(!idx.isValid())
+	{
+		return;
+	}
+
+	QModelIndex srcIdx = pFilterModel->mapToSource(idx);
+
+	if(!pModel->isMoneyIndex(srcIdx))
+	{
+		return;
+	}
+
+	pModel->setData(srcIdx, mBuffer);
 }

@@ -4,29 +4,22 @@
 #include "sqltools.h"
 
 /// MonthItem Class
-
-MonthItem::MonthItem() : WIMMItem(), mId(-1), mYear(-1), mMonth(-1)
-{
-}
-
-MonthItem::~MonthItem()
-{
-	qDeleteAll(mGroups);
-}
-
-ItemLevel MonthItem::level() const
-{
-	return Month;
-}
-
-int MonthItem::id() const
-{
-	return mId;
-}
-
 QString MonthItem::monthName() const
 {
 	return Tools::capitalize( QDate::longMonthName(mMonth, QDate::StandaloneFormat) );
+}
+
+bool MonthItem::save()
+{
+	foreach(GroupItem *group, mGroups)
+	{
+		if(!group->save())
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 QString MonthItem::name() const
@@ -45,36 +38,6 @@ double MonthItem::value(const WIMMItem::Column col) const
 	return result;
 }
 
-void MonthItem::setId(int id)
-{
-	mId = id;
-}
-
-int MonthItem::year() const
-{
-	return mYear;
-}
-
-void MonthItem::setYear(int year)
-{
-	mYear = year;
-}
-
-int MonthItem::month() const
-{
-	return mMonth;
-}
-
-void MonthItem::setMonth(int month)
-{
-	mMonth = month;
-}
-
-QList<GroupItem *> MonthItem::groups() const
-{
-	return mGroups;
-}
-
 void MonthItem::addGroup(GroupItem *group)
 {
 	group->setMonth( this );
@@ -85,29 +48,22 @@ void MonthItem::addGroup(GroupItem *group)
 
 
 /// GroupItem Class
-
-GroupItem::GroupItem() : WIMMItem(), mId(-1), pMonth(0)
+bool GroupItem::save()
 {
-}
+	foreach(CategoryItem *category, mCategories)
+	{
+		if(!category->isDirty())
+		{
+			continue;
+		}
 
-GroupItem::~GroupItem()
-{
-	qDeleteAll(mCategories);
-}
+		if(!category->save())
+		{
+			return false;
+		}
+	}
 
-ItemLevel GroupItem::level() const
-{
-	return Group;
-}
-
-int GroupItem::id() const
-{
-	return mId;
-}
-
-QString GroupItem::name()const
-{
-	return mName;
+	return true;
 }
 
 double GroupItem::value(WIMMItem::Column col) const
@@ -121,31 +77,6 @@ double GroupItem::value(WIMMItem::Column col) const
 	return result;
 }
 
-void GroupItem::setId(int id)
-{
-	mId = id;
-}
-
-void GroupItem::setName(const QString &name)
-{
-	mName = name;
-}
-
-MonthItem *GroupItem::month() const
-{
-	return pMonth;
-}
-
-void GroupItem::setMonth(MonthItem *value)
-{
-	pMonth = value;
-}
-
-QList<CategoryItem *> GroupItem::categories() const
-{
-	return mCategories;
-}
-
 void GroupItem::addCategory(CategoryItem *category)
 {
 	category->setGroup( this );
@@ -156,238 +87,22 @@ void GroupItem::addCategory(CategoryItem *category)
 
 
 /// CategoryItem Class
-CategoryItem::CategoryItem() : WIMMItem(),
-	mId(-1),
-	mCategoryId(-1),
-	mFirstHalfIncome(0),
-	mFirstHalfOutcome(0),
-	mFirstHalfEstimated(0),
-	mSecondHalfIncome(0),
-	mSecondHalfOutcome(0),
-	mSecondHalfEstimated(0),
-	pGroup(0)
+void CategoryItem::setValue(WIMMItem::Column col, double value)
 {
-
-}
-
-CategoryItem::~CategoryItem()
-{
-
-}
-
-ItemLevel CategoryItem::level() const
-{
-	return Category;
-}
-
-int CategoryItem::id() const
-{
-	return mId;
-}
-
-QString CategoryItem::name() const
-{
-	return mName;
-}
-
-double CategoryItem::value(WIMMItem::Column col) const
-{
-	switch(col)
-	{
-	case WIMMItem::FirstIn: return firstHalfIncome();
-	case WIMMItem::FirstOut: return firstHalfOutcome();
-	case WIMMItem::FirstEst: return firstHalfEstimated();
-	case WIMMItem::SecondIn: return secondHalfIncome();
-	case WIMMItem::SecondOut: return secondHalfOutcome();
-	case WIMMItem::SecondEst: return secondHalfEstimated();
-	default: break;
-	}
-
-	return 0;
-}
-
-QString CategoryItem::comment(WIMMItem::Column col) const
-{
-	switch(col)
-	{
-	case WIMMItem::FirstIn: return firstHalfIncomeComment();
-	case WIMMItem::FirstOut: return firstHalfOutcomeComment();
-	case WIMMItem::FirstEst: return firstHalfEstimatedComment();
-	case WIMMItem::SecondIn: return secondHalfIncomeComment();
-	case WIMMItem::SecondOut: return secondHalfOutcomeComment();
-	case WIMMItem::SecondEst: return secondHalfEstimatedComment();
-	default: break;
-	}
-
-	return QString();
+	mValues[col] = value;
+	setDirty(true);
 }
 
 void CategoryItem::setComment(WIMMItem::Column col, QString comment)
 {
-	switch(col)
-	{
-	case WIMMItem::FirstIn: setFirstHalfIncomeComment(comment); break;
-	case WIMMItem::FirstOut: setFirstHalfOutcomeComment(comment); break;
-	case WIMMItem::FirstEst: setFirstHalfEstimatedComment(comment); break;
-	case WIMMItem::SecondIn: setSecondHalfIncomeComment(comment); break;
-	case WIMMItem::SecondOut: setSecondHalfOutcomeComment(comment); break;
-	case WIMMItem::SecondEst: setSecondHalfEstimatedComment(comment); break;
-	default: break;
-	};
-}
-
-void CategoryItem::setId(int id)
-{
-	mId = id;
-}
-
-void CategoryItem::setName(const QString &name)
-{
-	mName = name;
-}
-
-int CategoryItem::categoryId() const
-{
-	return mCategoryId;
-}
-
-void CategoryItem::setCategoryId(int categoryId)
-{
-	mCategoryId = categoryId;
-}
-
-double CategoryItem::firstHalfIncome() const
-{
-	return mFirstHalfIncome;
-}
-
-void CategoryItem::setFirstHalfIncome(double firstHalfIncome)
-{
-	mFirstHalfIncome = firstHalfIncome;
-}
-
-double CategoryItem::firstHalfOutcome() const
-{
-	return mFirstHalfOutcome;
-}
-
-void CategoryItem::setFirstHalfOutcome(double firstHalfOutcome)
-{
-	mFirstHalfOutcome = firstHalfOutcome;
-}
-
-double CategoryItem::firstHalfEstimated() const
-{
-	return mFirstHalfEstimated;
-}
-
-void CategoryItem::setFirstHalfEstimated(double firstHalfEstimated)
-{
-	mFirstHalfEstimated = firstHalfEstimated;
-}
-
-double CategoryItem::secondHalfIncome() const
-{
-	return mSecondHalfIncome;
-}
-
-void CategoryItem::setSecondHalfIncome(double secondHalfIncome)
-{
-	mSecondHalfIncome = secondHalfIncome;
-}
-
-double CategoryItem::secondHalfOutcome() const
-{
-	return mSecondHalfOutcome;
-}
-
-void CategoryItem::setSecondHalfOutcome(double secondHalfOutcome)
-{
-	mSecondHalfOutcome = secondHalfOutcome;
-}
-
-double CategoryItem::secondHalfEstimated() const
-{
-	return mSecondHalfEstimated;
-}
-
-void CategoryItem::setSecondHalfEstimated(double secondHalfEstimated)
-{
-	mSecondHalfEstimated = secondHalfEstimated;
-}
-
-GroupItem *CategoryItem::group() const
-{
-	return pGroup;
-}
-
-void CategoryItem::setGroup(GroupItem *value)
-{
-	pGroup = value;
+	mComments[col] = comment;
+	setDirty(true);
 }
 
 bool CategoryItem::save()
 {
-	return SqlTools::saveMoneyRecord( this );
-}
-
-QString CategoryItem::firstHalfIncomeComment() const
-{
-	return mFirstHalfIncomeComment;
-}
-
-void CategoryItem::setFirstHalfIncomeComment(const QString &firstHalfIncomeComment)
-{
-	mFirstHalfIncomeComment = firstHalfIncomeComment;
-}
-
-QString CategoryItem::firstHalfOutcomeComment() const
-{
-	return mFirstHalfOutcomeComment;
-}
-
-void CategoryItem::setFirstHalfOutcomeComment(const QString &firstHalfOutcomeComment)
-{
-	mFirstHalfOutcomeComment = firstHalfOutcomeComment;
-}
-
-QString CategoryItem::firstHalfEstimatedComment() const
-{
-	return mFirstHalfEstimatedComment;
-}
-
-void CategoryItem::setFirstHalfEstimatedComment(const QString &firstHalfEstimatedComment)
-{
-	mFirstHalfEstimatedComment = firstHalfEstimatedComment;
-}
-
-QString CategoryItem::secondHalfIncomeComment() const
-{
-	return mSecondHalfIncomeComment;
-}
-
-void CategoryItem::setSecondHalfIncomeComment(const QString &secondHalfIncomeComment)
-{
-	mSecondHalfIncomeComment = secondHalfIncomeComment;
-}
-
-QString CategoryItem::secondHalfOutcomeComment() const
-{
-	return mSecondHalfOutcomeComment;
-}
-
-void CategoryItem::setSecondHalfOutcomeComment(const QString &secondHalfOutcomeComment)
-{
-	mSecondHalfOutcomeComment = secondHalfOutcomeComment;
-}
-
-QString CategoryItem::secondHalfEstimatedComment() const
-{
-	return mSecondHalfEstimatedComment;
-}
-
-void CategoryItem::setSecondHalfEstimatedComment(const QString &secondHalfEstimatedComment)
-{
-	mSecondHalfEstimatedComment = secondHalfEstimatedComment;
+	bool ok = SqlTools::saveMoneyRecord( this );
+	setDirty(ok);
+	return ok;
 }
 /// End CategoryItem Class

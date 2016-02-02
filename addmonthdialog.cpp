@@ -39,3 +39,8 @@ QString AddMonthDialog::monthName() const
 {
 	return ui->cbMonth->currentText();
 }
+
+bool AddMonthDialog::copyPreviousEst() const
+{
+	return ui->cbCopyEst->isChecked();
+}

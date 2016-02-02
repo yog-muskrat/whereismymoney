@@ -6,5 +6,18 @@
         <file alias="redo">images/redo.png</file>
         <file alias="undo">images/undo.png</file>
         <file alias="save">images/save.png</file>
+        <file alias="font">images/font.png</file>
+        <file alias="settings">images/settings.png</file>
+        <file alias="folder">images/folder.png</file>
+        <file alias="arrow_down">images/arrow_down.png</file>
+        <file alias="arrow_left">images/arrow_left.png</file>
+        <file alias="arrow_right">images/arrow_right.png</file>
+        <file alias="arrow_up">images/arrow_up.png</file>
+        <file alias="accept">images/accept.png</file>
+        <file alias="cancel">images/cancel.png</file>
+        <file alias="add">images/add.png</file>
+        <file alias="remove">images/remove.png</file>
+        <file alias="wimm">images/wimm.png</file>
+        <file alias="time">images/time.png</file>
     </qresource>
 </RCC>

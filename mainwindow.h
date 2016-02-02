@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-
+#include <QVariant>
 #include <QMap>
 
 class QMenu;
@@ -36,6 +36,9 @@ private slots:
 	void setDirty(bool dirty = true);
 	void onSave();
 
+	void onCopyValue();
+	void onPasteValue();
+
 protected:
 	virtual void closeEvent(QCloseEvent *e);
 	virtual void showEvent(QShowEvent *e);
@@ -50,6 +53,8 @@ private:
 	QMenu *pMenu;
 	QMap<QString, QAction*> mActions;
 	bool mDirty;
+
+	QVariant mBuffer;
 };
 
 #endif // MAINWINDOW_H

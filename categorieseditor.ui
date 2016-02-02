@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Настройка категорий затрат</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/folder</normaloff>:/folder</iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTreeWidget" name="treeWidget">
@@ -37,14 +41,22 @@
      <item>
       <widget class="QPushButton" name="pbUp">
        <property name="text">
-        <string>Up</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/arrow_up</normaloff>:/arrow_up</iconset>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pbDown">
        <property name="text">
-        <string>Down</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/arrow_down</normaloff>:/arrow_down</iconset>
        </property>
       </widget>
      </item>
@@ -62,7 +74,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

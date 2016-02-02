@@ -36,9 +36,40 @@ void WIMMModel::addMonths(QList<MonthItem *> items)
 	endInsertRows();
 }
 
-void WIMMModel::addMonth(MonthItem *item)
+void WIMMModel::addMonth(MonthItem *item, bool updateEstFromPrevious)
 {
 	QList<MonthItem*> items;
+
+	if(updateEstFromPrevious && !mData.isEmpty())
+	{
+		MonthItem *prevMonth = mData.last();
+
+		foreach(GroupItem *prevGroup, prevMonth->groups())
+		{
+			foreach(GroupItem *newGroup, item->groups())
+			{
+				if(prevGroup->id() != newGroup->id())
+				{
+					continue;
+				}
+
+				foreach(CategoryItem *prevCat, prevGroup->categories())
+				{
+					foreach (CategoryItem *newCat, newGroup->categories())
+					{
+						if(prevCat->categoryId() != newCat->categoryId())
+						{
+							continue;
+						}
+
+						newCat->setValue(WIMMItem::FirstEst,  prevCat->value(WIMMItem::FirstEst));
+						newCat->setValue(WIMMItem::SecondEst,  prevCat->value(WIMMItem::SecondEst));
+					}
+				}
+			}
+		}
+	}
+
 	items << item;
 	addMonths(items);
 }
@@ -266,16 +297,7 @@ bool WIMMModel::save()
 {
 	foreach(MonthItem *month, mData)
 	{
-		foreach(GroupItem *group, month->groups())
-		{
-			foreach(CategoryItem *category, group->categories())
-			{
-				if(!category->save())
-				{
-					return false;
-				}
-			}
-		}
+		month->save();
 	}
 	return true;
 }
@@ -452,6 +474,41 @@ QVariant WIMMModel::headerData(int section, Qt::Orientation orientation, int rol
 	else if(role == Qt::TextAlignmentRole)
 	{
 		return Qt::AlignCenter;
+	}
+	else if(role == Qt::ToolTipRole)
+	{
+		if(section == COL_DbId)
+		{
+			return "Код в БД";
+		}
+		else if(section == COL_Title)
+		{
+			return "Название категории";
+		}
+		else if(section == COL_FirstHalfIn)
+		{
+			return "Первая половина месяца: приход";
+		}
+		else if(section == COL_FirstHalfOut)
+		{
+			return "Первая половина месяца: расход";
+		}
+		else if(section == COL_FirstHalfEst)
+		{
+			return "Первая половина месяца: справочно";
+		}
+		else if(section == COL_SecondHalfIn)
+		{
+			return "Вторая половина месяца: приход";
+		}
+		else if(section == COL_SecondHalfOut)
+		{
+			return "Вторая половина месяца: расход";
+		}
+		else if(section == COL_SecondHalfEst)
+		{
+			return "Вторая половина месяца: справочно";
+		}
 	}
 
 	return QAbstractItemModel::headerData(section, orientation, role);

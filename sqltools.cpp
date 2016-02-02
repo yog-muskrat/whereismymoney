@@ -67,12 +67,12 @@ QList<GroupItem *> SqlTools::loadSummary()
 			QSqlRecord moneyRec = moneyQuery.record();
 
 			CategoryItem *item = new CategoryItem;
-			item->setFirstHalfIncome( moneyRec.value("first_in").toDouble() );
-			item->setFirstHalfOutcome( moneyRec.value("first_out").toDouble() );
-			item->setFirstHalfEstimated( moneyRec.value("first_est").toDouble() );
-			item->setSecondHalfIncome( moneyRec.value("second_in").toDouble() );
-			item->setSecondHalfOutcome( moneyRec.value("second_out").toDouble() );
-			item->setSecondHalfEstimated( moneyRec.value("second_est").toDouble() );
+			item->setValue(WIMMItem::FirstIn, moneyRec.value("first_in").toDouble() );
+			item->setValue(WIMMItem::FirstOut, moneyRec.value("first_out").toDouble() );
+			item->setValue(WIMMItem::FirstEst, moneyRec.value("first_est").toDouble() );
+			item->setValue(WIMMItem::SecondIn, moneyRec.value("second_in").toDouble() );
+			item->setValue(WIMMItem::SecondOut, moneyRec.value("second_out").toDouble() );
+			item->setValue(WIMMItem::SecondEst, moneyRec.value("second_est").toDouble() );
 			item->setCategoryId(moneyRec.value("category_id").toInt());
 			item->setName(moneyRec.value("category_name").toString());
 
@@ -191,18 +191,18 @@ bool SqlTools::saveMoneyRecord(CategoryItem *md)
 		query.bindValue(":record_id", md->id());
 	}
 
-	query.bindValue(":first_in", md->firstHalfIncome());
-	query.bindValue(":first_out", md->firstHalfOutcome());
-	query.bindValue(":first_est", md->firstHalfEstimated());
-	query.bindValue(":second_in", md->secondHalfIncome());
-	query.bindValue(":second_out", md->secondHalfOutcome());
-	query.bindValue(":second_est", md->secondHalfEstimated());
-	query.bindValue(":first_in_comment", md->firstHalfIncomeComment());
-	query.bindValue(":first_out_comment", md->firstHalfOutcomeComment());
-	query.bindValue(":first_est_comment", md->firstHalfEstimatedComment());
-	query.bindValue(":second_in_comment", md->secondHalfIncomeComment());
-	query.bindValue(":second_out_comment", md->secondHalfOutcomeComment());
-	query.bindValue(":second_est_comment", md->secondHalfEstimatedComment());
+	query.bindValue(":first_in", md->value(WIMMItem::FirstIn));
+	query.bindValue(":first_out", md->value(WIMMItem::FirstOut));
+	query.bindValue(":first_est", md->value(WIMMItem::FirstEst));
+	query.bindValue(":second_in", md->value(WIMMItem::SecondIn));
+	query.bindValue(":second_out", md->value(WIMMItem::SecondOut));
+	query.bindValue(":second_est", md->value(WIMMItem::SecondEst));
+	query.bindValue(":first_in_comment", md->comment(WIMMItem::FirstIn));
+	query.bindValue(":first_out_comment", md->comment(WIMMItem::FirstOut));
+	query.bindValue(":first_est_comment", md->comment(WIMMItem::FirstEst));
+	query.bindValue(":second_in_comment", md->comment(WIMMItem::SecondIn));
+	query.bindValue(":second_out_comment", md->comment(WIMMItem::SecondOut));
+	query.bindValue(":second_est_comment", md->comment(WIMMItem::SecondEst));
 
 	bool ok = execQuery(query);
 
@@ -367,18 +367,20 @@ bool SqlTools::loadCategories(GroupItem *group)
 		item->setId( rec.value("id").toInt() );
 		item->setCategoryId( rec.value("category_id").toInt() );
 		item->setName( rec.value("category_name").toString() );
-		item->setFirstHalfIncome( rec.value("first_half_income").toDouble() );
-		item->setFirstHalfOutcome( rec.value("first_half_outcome").toDouble() );
-		item->setFirstHalfEstimated( rec.value("first_half_est").toDouble() );
-		item->setSecondHalfIncome( rec.value("second_half_income").toDouble() );
-		item->setSecondHalfOutcome( rec.value("second_half_outcome").toDouble() );
-		item->setSecondHalfEstimated( rec.value("second_half_est").toDouble() );
-		item->setFirstHalfIncomeComment( rec.value("first_half_income_comment").toString() );
-		item->setFirstHalfOutcomeComment( rec.value("first_half_outcome_comment").toString() );
-		item->setFirstHalfEstimatedComment( rec.value("first_half_est_comment").toString() );
-		item->setSecondHalfIncomeComment( rec.value("second_half_income_comment").toString() );
-		item->setSecondHalfOutcomeComment( rec.value("second_half_outcome_comment").toString() );
-		item->setSecondHalfEstimatedComment( rec.value("second_half_est_comment").toString() );
+		item->setValue(WIMMItem::FirstIn, rec.value("first_half_income").toDouble() );
+		item->setValue(WIMMItem::FirstOut, rec.value("first_half_outcome").toDouble() );
+		item->setValue(WIMMItem::FirstEst, rec.value("first_half_est").toDouble() );
+		item->setValue(WIMMItem::SecondIn, rec.value("second_half_income").toDouble() );
+		item->setValue(WIMMItem::SecondOut, rec.value("second_half_outcome").toDouble() );
+		item->setValue(WIMMItem::SecondEst, rec.value("second_half_est").toDouble() );
+		item->setComment(WIMMItem::FirstIn, rec.value("first_half_income_comment").toString() );
+		item->setComment(WIMMItem::FirstOut, rec.value("first_half_outcome_comment").toString() );
+		item->setComment(WIMMItem::FirstEst, rec.value("first_half_est_comment").toString() );
+		item->setComment(WIMMItem::SecondIn, rec.value("second_half_income_comment").toString() );
+		item->setComment(WIMMItem::SecondOut, rec.value("second_half_outcome_comment").toString() );
+		item->setComment(WIMMItem::SecondEst, rec.value("second_half_est_comment").toString() );
+
+		item->setDirty(false);
 
 		group->addCategory( item );
 	}
