@@ -13,10 +13,11 @@ class WIMMModel : public QAbstractItemModel
 
 	friend class ChangeValueCommand;
 public:
-	WIMMModel(QObject *parent = 0);
+	explicit WIMMModel(QObject *parent = 0);
 	~WIMMModel();
 
-	enum Column {
+	enum Column
+	{
 		COL_Title,
 		COL_DbId,
 		COL_FirstHalfIn,
@@ -42,6 +43,13 @@ public:
 
 	ItemLevel indexLevel(const QModelIndex &index) const;
 	int categoryId(const QModelIndex &index) const;
+
+	/*!
+	 * \brief Возвращает суммы прихода/ухода денег по категориям
+	 * В возвращаемом массиве ключ - код категории затра, значение - пара значений,
+	 * соответствующим суммарным приходу и уходу денег по данной категории.
+	 */
+	QMap<int, QPair<double, double> > totals() const;
 
 	void clear();
 

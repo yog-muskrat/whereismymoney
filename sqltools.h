@@ -36,6 +36,8 @@ public:
 	static bool loadGroups(MonthItem *month);
 	static bool loadCategories(GroupItem *group);
 
+	static QList<QPair<int, QString> > groupsList();
+	static QList<QPair<int, QString> > groupCategories(int groupId);
 private:
 	static QSqlDatabase db();
 

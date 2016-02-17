@@ -6,7 +6,7 @@
 class WIMMFilterModel : public QSortFilterProxyModel
 {
 public:
-	WIMMFilterModel(QObject *parent = 0);
+	explicit WIMMFilterModel(QObject *parent = 0);
 
 	void setMonthsFilter(QList<int> monthsIds);
 	void clearMonthsFilter();

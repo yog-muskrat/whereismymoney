@@ -280,6 +280,29 @@ int WIMMModel::categoryId(const QModelIndex &index) const
 	return category->categoryId();
 }
 
+QMap<int, QPair<double, double> > WIMMModel::totals() const
+{
+	QMap<int, QPair<double, double> > result;
+
+	foreach(MonthItem *month, mData)
+	{
+		foreach(GroupItem *group, month->groups())
+		{
+			foreach(CategoryItem *category, group->categories())
+			{
+				int id = category->categoryId();
+				double sumIn = category->value( WIMMItem::FirstIn) + category->value(WIMMItem::SecondIn);
+				double sumOut = category->value( WIMMItem::FirstOut) + category->value(WIMMItem::SecondOut);
+
+				result[id].first += sumIn;
+				result[id].second += sumOut;
+			}
+		}
+	}
+
+	return result;
+}
+
 void WIMMModel::clear()
 {
 	if(rowCount() == 0)

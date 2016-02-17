@@ -45,6 +45,7 @@ protected:
 
 private:
 	void createMenu();
+	void fillTotalsTree();
 
 	Ui::MainWindow *ui;
 

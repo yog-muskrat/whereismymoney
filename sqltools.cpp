@@ -389,6 +389,53 @@ bool SqlTools::loadCategories(GroupItem *group)
 	return true;
 }
 
+QList< QPair<int, QString> > SqlTools::groupsList()
+{
+	QList< QPair<int, QString> >  result;
+
+	QSqlQuery query = emptyQuery();
+	query.prepare("SELECT id, name FROM category_groups ORDER BY pos");
+
+	if(!execQuery(query))
+	{
+		return result;
+	}
+
+	while (query.next())
+	{
+		int id = query.value(0).toInt();
+		QString name = query.value(1).toString();
+
+		result << qMakePair(id, name);
+	}
+
+	return result;
+}
+
+QList< QPair<int, QString> > SqlTools::groupCategories(int groupId)
+{
+	QList< QPair<int, QString> >  result;
+
+	QSqlQuery query = emptyQuery();
+	query.prepare("SELECT id, name FROM categories WHERE category_group=:group ORDER BY pos");
+	query.bindValue(":group", groupId);
+
+	if(!execQuery(query))
+	{
+		return result;
+	}
+
+	while (query.next())
+	{
+		int id = query.value(0).toInt();
+		QString name = query.value(1).toString();
+
+		result << qMakePair(id, name);
+	}
+
+	return result;
+}
+
 bool SqlTools::execQuery(QSqlQuery &query)
 {
 	if(!query.exec())
