@@ -111,8 +111,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	new QShortcut(QKeySequence::Paste, this, SLOT(onPasteValue()));
 
 	connect(ui->listView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(onSelectionChanged()));
-	connect(pFilterModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(calcTotals()));
 	connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(onMenuRequested(QPoint)));
+	connect(pModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(calcTotals()));
 	connect(pModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this, SLOT(setDirty()));
 
 	int year = QDate::currentDate().year();

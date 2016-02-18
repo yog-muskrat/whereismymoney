@@ -781,9 +781,9 @@ WIMMItem *WIMMModel::itemForIndex(const QModelIndex &index) const
 	return item;
 }
 
-void WIMMModel::emitDataChanged(const QModelIndex &index)
+void WIMMModel::emitDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
 {
-	emit dataChanged(index, index);
+	emit dataChanged(topLeft, bottomRight);
 }
 
 QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) const

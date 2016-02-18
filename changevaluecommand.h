@@ -18,6 +18,8 @@ public:
 	virtual void redo();
 
 private:
+	void notifyDataChanged();
+
 	WIMMModel *pModel;
 	QVariant mOld;
 	QVariant mNew;

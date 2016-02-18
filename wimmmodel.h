@@ -78,7 +78,7 @@ private:
 
 	WIMMItem* itemForIndex(const QModelIndex &index) const;
 
-	void emitDataChanged(const QModelIndex &index);
+	void emitDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight);
 
 	QList<MonthItem*> mData;
 	QUndoStack *pUndoStack;

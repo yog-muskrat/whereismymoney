@@ -2,6 +2,8 @@
 #include "wimmmodel.h"
 #include "tools.h"
 
+#include <QDebug>
+
 ChangeValueCommand::ChangeValueCommand(const QModelIndex &index, QVariant data, WIMMModel *model) :
 	QUndoCommand()
 {
@@ -55,11 +57,21 @@ ChangeValueCommand::ChangeValueCommand(const QModelIndex &index, QVariant data, 
 void ChangeValueCommand::undo()
 {
 	pItem->setValue(mItemColumn, mOld.toDouble());
-	pModel->emitDataChanged( pModel->index(mIndex.row(), mIndex.column(), mIndex.parent()));
+
+	notifyDataChanged();
 }
 
 void ChangeValueCommand::redo()
 {
 	pItem->setValue(mItemColumn, mNew.toDouble());
-	pModel->emitDataChanged( pModel->index(mIndex.row(), mIndex.column(), mIndex.parent()));
+
+	notifyDataChanged();
+}
+
+void ChangeValueCommand::notifyDataChanged()
+{
+	QModelIndex bottomRight = pModel->index(mIndex.row(), mIndex.column(), mIndex.parent());
+
+	QModelIndex topLeft = bottomRight.parent().parent();
+	pModel->emitDataChanged( topLeft, bottomRight);
 }
