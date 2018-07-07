@@ -6,15 +6,15 @@
 class WIMMFilterModel : public QSortFilterProxyModel
 {
 public:
-	explicit WIMMFilterModel(QObject *parent = 0);
+	explicit WIMMFilterModel(QObject *parent = nullptr);
 
 	void setMonthsFilter(QList<int> monthsIds);
 	void clearMonthsFilter();
 
-	virtual QVariant data(const QModelIndex &index, int role) const;
+	QVariant data(const QModelIndex &index, int role) const override;
 
 protected:
-	bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const;
+	bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
 
 private:
 	QList<int> mMonths;

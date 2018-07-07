@@ -32,7 +32,11 @@ void WIMMModel::addMonths(QList<MonthItem *> items)
 	int row = mData.count();
 
 	beginInsertRows(QModelIndex(), row, row + items.count() -1 );
+
+	addToCache(items);
+
 	mData.append( items );
+
 	endInsertRows();
 }
 
@@ -93,7 +97,12 @@ void WIMMModel::removeMonth(int monthId)
 	}
 
 	beginRemoveRows(QModelIndex(), row, row);
-	delete mData.takeAt(row);
+
+	auto monthItem = mData.takeAt(row);
+	removeFromCache({monthItem});
+
+	delete monthItem;
+
 	endRemoveRows();
 }
 
@@ -313,6 +322,8 @@ void WIMMModel::clear()
 	beginRemoveRows(QModelIndex(), 0, rowCount()-1);
 	qDeleteAll(mData);
 	mData.clear();
+	mCache.clear();
+	mLastId = 0;
 	endRemoveRows();
 }
 
@@ -333,6 +344,11 @@ int WIMMModel::columnCount(const QModelIndex &parent) const
 
 int WIMMModel::rowCount(const QModelIndex &parent) const
 {
+	if(mData.empty())
+	{
+		return 0;
+	}
+
 	WIMMItem *item = itemForIndex(parent);
 
 	if(item)
@@ -365,7 +381,7 @@ QVariant WIMMModel::data(const QModelIndex &index, int role) const
 {
 	int row = index.row();
 
-	if(row < 0 || row >= rowCount())
+	if(row < 0 || row >= rowCount(parent(index)))
 	{
 		return QVariant();
 	}
@@ -686,11 +702,11 @@ QVariant WIMMModel::backgroundRole(const QModelIndex &index) const
 
 	if(item->level() == Group)
 	{
-//		c = c.darker(110);
+		//		c = c.darker(110);
 	}
 	else if(item->level() == Month)
 	{
-//		c = c.darker(110);
+		//		c = c.darker(110);
 	}
 
 	return c;
@@ -777,13 +793,63 @@ QVariant WIMMModel::tooltipRole(const QModelIndex &index) const
 
 WIMMItem *WIMMModel::itemForIndex(const QModelIndex &index) const
 {
-	WIMMItem *item = static_cast<WIMMItem*>(index.internalPointer());
-	return item;
+	auto const id = index.internalId();
+
+	Q_ASSERT(mCache.contains(id));
+
+	return mCache.value(id);
 }
 
 void WIMMModel::emitDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
 {
 	emit dataChanged(topLeft, bottomRight);
+}
+
+void WIMMModel::addToCache(QList<MonthItem *> months)
+{
+	for(auto month : months)
+	{
+		mCache[nextCacheId()] = month;
+
+		for(auto group : month->groups())
+		{
+			mCache[nextCacheId()] = group;
+
+			for(auto category : group->categories())
+			{
+				mCache[nextCacheId()] = category;
+			}
+		}
+	}
+}
+
+void WIMMModel::removeFromCache(QList<MonthItem *> months)
+{
+	for(auto month : months)
+	{
+		mCache.remove(mCache.key(month));
+
+		for(auto group : month->groups())
+		{
+			mCache.remove(mCache.key(group));
+
+			for(auto category : group->categories())
+			{
+				mCache.remove(mCache.key(category));
+			}
+		}
+	}
+}
+
+quintptr WIMMModel::cacheId(WIMMItem *item) const
+{
+	Q_ASSERT(mCache.values().contains(item));
+	return mCache.key(item);
+}
+
+quint64 WIMMModel::nextCacheId()
+{
+	return mLastId++;
 }
 
 QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) const
@@ -803,7 +869,9 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 				return QModelIndex();
 			}
 
-			return createIndex(row, column, month->groups().at(row));
+			auto const id = cacheId(month->groups().at(row));
+
+			return createIndex(row, column, id);
 		}
 		else if(item->level() == Group)
 		{
@@ -815,7 +883,9 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 				return QModelIndex();
 			}
 
-			return createIndex(row, column, group->categories().at(row));
+			auto const id = cacheId(group->categories().at(row));
+
+			return createIndex(row, column, id);
 		}
 		else
 		{
@@ -829,7 +899,9 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 		return QModelIndex();
 	}
 
-	return createIndex(row, column, mData[row]);
+	auto const id = cacheId(mData[row]);
+
+	return createIndex(row, column, id);
 }
 
 QModelIndex WIMMModel::parent(const QModelIndex &child) const
@@ -856,7 +928,9 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 			return QModelIndex();
 		}
 
-		return createIndex(row, 0, group->month());
+		auto const id = cacheId(group->month());
+
+		return createIndex(row, 0, id);
 	}
 	else if(item->level() == Category)
 	{
@@ -869,7 +943,9 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 			return QModelIndex();
 		}
 
-		return createIndex(row, 0, category->group());
+		auto const id = cacheId(category->group());
+
+		return createIndex(row, 0, id);
 	}
 
 	return QModelIndex();

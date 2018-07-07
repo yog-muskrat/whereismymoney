@@ -13,7 +13,7 @@ class WIMMModel : public QAbstractItemModel
 
 	friend class ChangeValueCommand;
 public:
-	explicit WIMMModel(QObject *parent = 0);
+	explicit WIMMModel(QObject *parent = nullptr);
 	~WIMMModel();
 
 	enum Column
@@ -46,7 +46,7 @@ public:
 
 	/*!
 	 * \brief Возвращает суммы прихода/ухода денег по категориям
-	 * В возвращаемом массиве ключ - код категории затра, значение - пара значений,
+	 * В возвращаемом массиве ключ - код категории затрат, значение - пара значений,
 	 * соответствующим суммарным приходу и уходу денег по данной категории.
 	 */
 	QMap<int, QPair<double, double> > totals() const;
@@ -80,8 +80,16 @@ private:
 
 	void emitDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight);
 
+	void addToCache(QList<MonthItem *> months);
+	void removeFromCache(QList<MonthItem *> months);
+	quintptr cacheId(WIMMItem*item) const;
+
+	quintptr nextCacheId();
+
 	QList<MonthItem*> mData;
-	QUndoStack *pUndoStack;
+	QMap<quintptr, WIMMItem*> mCache;
+	quintptr mLastId{0};
+	QUndoStack *pUndoStack{nullptr};
 
 };
 

@@ -22,13 +22,12 @@ void WIMMFilterModel::clearMonthsFilter()
 
 QVariant WIMMFilterModel::data(const QModelIndex &index, int role) const
 {
-	if(!index.parent().isValid())
+	if(role == Qt::BackgroundRole)
 	{
-		if(role == Qt::BackgroundRole)
+		QModelIndex src = mapToSource(index);
+		if(src.isValid() && !src.parent().isValid())
 		{
-			QModelIndex src = mapToSource(index);
 			QColor color = src.data(role).value<QColor>();
-
 			return color.darker(110);
 		}
 	}

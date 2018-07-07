@@ -19,7 +19,7 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(QWidget *parent = 0);
+	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
 private slots:
@@ -40,8 +40,8 @@ private slots:
 	void onPasteValue();
 
 protected:
-	virtual void closeEvent(QCloseEvent *e);
-	virtual void showEvent(QShowEvent *e);
+	void closeEvent(QCloseEvent *e) override;
+	void showEvent(QShowEvent *e) override;
 
 private:
 	void createMenu();
