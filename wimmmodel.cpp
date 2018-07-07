@@ -842,6 +842,11 @@ QVariant WIMMModel::tooltipRole(const QModelIndex &index) const
 
 WIMMItem *WIMMModel::itemForIndex(const QModelIndex &index) const
 {
+	if(!index.isValid())
+	{
+		return nullptr;
+	}
+
 	auto const id = index.internalId();
 
 	Q_ASSERT(mCache.contains(id));
