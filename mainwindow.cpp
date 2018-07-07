@@ -181,15 +181,15 @@ void MainWindow::on_pbAddMonth_clicked()
 
 void MainWindow::on_pbRemoveMonth_clicked()
 {
-	QModelIndex idx = ui->listView->currentIndex();
-	if(!idx.isValid())
+	QModelIndexList indexes = ui->listView->selectionModel()->selectedRows();
+	if(indexes.empty())
 	{
 		return;
 	}
 
 	int btn = QMessageBox::question(this,
-									"Удаление месяца",
-									"Выбранный месяц и будет удален из БД. Продолжить?",
+									"Удаление месяцев" ,
+									"Выбранные месяцы будут удалены из БД. Продолжить?",
 									QMessageBox::Yes,
 									QMessageBox::No);
 
@@ -198,18 +198,27 @@ void MainWindow::on_pbRemoveMonth_clicked()
 		return;
 	}
 
-	int id = pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
+	SqlTools::transaction();
 
-	if(!SqlTools::deleteMonthRecord(id))
+	QVector<int> ids;
+	std::transform(indexes.cbegin(), indexes.cend(), std::back_inserter(ids), [this](QModelIndex const &idx)
 	{
-		QMessageBox::critical(this,
-							  "Ошибка БД",
-							  "При удалении записи из БД произошла ошибка. Обратитесь к администритору.",
-							  QMessageBox::Close);
-		return;
+		return pModel->index(idx.row(), WIMMModel::COL_DbId, idx.parent()).data().toInt();
+	});
+
+	if(!std::all_of(ids.cbegin(), ids.cend(), SqlTools::deleteMonthRecord))
+	{
+			QMessageBox::critical(this,
+								  "Ошибка БД",
+								  "При удалении записи из БД произошла ошибка. Обратитесь к администритору.",
+								  QMessageBox::Close);
+			SqlTools::rollback();
+			return;
 	}
 
-	pModel->removeMonth(id);
+	SqlTools::commit();
+
+	std::for_each(ids.cbegin(), ids.cend(), [this](int id){pModel->removeMonth(id);});
 }
 
 void MainWindow::fillTotalsTree()

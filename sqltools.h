@@ -29,6 +29,10 @@ public:
 	static bool openDb();
 	static void closeDb();
 
+	static bool transaction();
+	static bool commit();
+	static bool rollback();
+
 	static QSqlQuery emptyQuery();
 	static bool execQuery(QSqlQuery &query);
 

@@ -247,6 +247,21 @@ void SqlTools::closeDb()
 	QSqlDatabase::removeDatabase(mConnectionName);
 }
 
+bool SqlTools::transaction()
+{
+	return db().transaction();
+}
+
+bool SqlTools::commit()
+{
+	return db().commit();
+}
+
+bool SqlTools::rollback()
+{
+	return db().rollback();
+}
+
 QSqlQuery SqlTools::emptyQuery()
 {
 	return QSqlQuery(db());
