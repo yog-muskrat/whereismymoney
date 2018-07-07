@@ -116,7 +116,7 @@ QModelIndex WIMMModel::monthIndex(int monthId) const
 		}
 	}
 
-	return QModelIndex();
+	return {};
 }
 
 QModelIndex WIMMModel::monthIndex(int year, int month) const
@@ -129,7 +129,7 @@ QModelIndex WIMMModel::monthIndex(int year, int month) const
 		}
 	}
 
-	return QModelIndex();
+	return {};
 }
 
 int WIMMModel::monthId(const QModelIndex &index) const
@@ -896,7 +896,7 @@ quintptr WIMMModel::cacheId(WIMMItem *item) const
 	return mCache.key(item);
 }
 
-quint64 WIMMModel::nextCacheId()
+quintptr WIMMModel::nextCacheId()
 {
 	return mLastId++;
 }
@@ -915,7 +915,7 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 
 			if(row < 0 || row >= month->groups().count())
 			{
-				return QModelIndex();
+				return {};
 			}
 
 			auto const id = cacheId(month->groups().at(row));
@@ -930,7 +930,7 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 
 			if(row < 0 || row >= group->categories().count())
 			{
-				return QModelIndex();
+				return {};
 			}
 
 			auto const id = cacheId(group->categories().at(row));
@@ -940,12 +940,12 @@ QModelIndex WIMMModel::index(int row, int column, const QModelIndex &parent) con
 
 		// Этого быть не должно
 		Q_ASSERT(false);
-		return QModelIndex();
+		return {};
 	}
 
 	if(row < 0 || row >= mData.count())
 	{
-		return QModelIndex();
+		return {};
 	}
 
 	auto const id = cacheId(mData.value(row));
@@ -959,12 +959,12 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 
 	if(item == nullptr)
 	{
-		return QModelIndex();
+		return {};
 	}
 
 	if(item->level() == Month)
 	{
-		return QModelIndex();
+		return {};
 	}
 
 	if(item->level() == Group)
@@ -975,7 +975,7 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 		int row = mData.indexOf(group->month());
 		if(row < 0)
 		{
-			return QModelIndex();
+			return {};
 		}
 
 		auto const id = cacheId(group->month());
@@ -991,7 +991,7 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 		int row = category->group()->month()->groups().indexOf(category->group());
 		if(row < 0)
 		{
-			return QModelIndex();
+			return {};
 		}
 
 		auto const id = cacheId(category->group());
@@ -999,5 +999,5 @@ QModelIndex WIMMModel::parent(const QModelIndex &child) const
 		return createIndex(row, 0, id);
 	}
 
-	return QModelIndex();
+	return {};
 }
