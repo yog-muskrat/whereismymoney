@@ -4,17 +4,16 @@
 
 #include <QDebug>
 
-ChangeValueCommand::ChangeValueCommand(const QModelIndex &index, QVariant data, WIMMModel *model) :
-	QUndoCommand()
+ChangeValueCommand::ChangeValueCommand(const QModelIndex &index, QVariant data, WIMMModel *model)
 {
 	mIndex = QPersistentModelIndex(index);
 	mOld = index.data(Qt::EditRole);
-	mNew = data;
+	mNew = std::move(data);
 	pModel = model;
 
 	WIMMItem *item = model->itemForIndex(index);
 
-	pItem = static_cast<CategoryItem*>(item);
+	pItem = dynamic_cast<CategoryItem*>(item);
 
 	Q_ASSERT(pItem && pItem->level() == Category);
 
@@ -25,7 +24,7 @@ ChangeValueCommand::ChangeValueCommand(const QModelIndex &index, QVariant data, 
 	QString mOldString = Tools::moneyString( mOld.toDouble());
 	QString mNewString = Tools::moneyString( mOld.toDouble());
 
-	WIMMModel::Column col = static_cast<WIMMModel::Column>(mIndex.column());
+	auto col = static_cast<WIMMModel::Column>(mIndex.column());
 	if(col == WIMMModel::COL_FirstHalfEst)
 	{
 		mItemColumn = WIMMItem::FirstEst;

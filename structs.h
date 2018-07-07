@@ -16,8 +16,8 @@ class WIMMItem
 public:
 	enum Column {FirstIn, FirstOut, FirstEst, SecondIn, SecondOut, SecondEst};
 
-	WIMMItem() : mDirty(false) {}
-	virtual ~WIMMItem(){}
+	WIMMItem() = default;
+	virtual ~WIMMItem()= default;
 
 	virtual ItemLevel level() const = 0;
 	virtual int id() const = 0;
@@ -29,24 +29,24 @@ public:
 	void setDirty(bool dirty) { mDirty = dirty; }
 
 private:
-	bool mDirty;
+	bool mDirty{};
 };
 
 class MonthItem : public WIMMItem
 {
 public:
-	MonthItem() : WIMMItem(), mId(-1), mYear(-1), mMonth(-1) {}
-	~MonthItem() { qDeleteAll(mGroups); }
+	MonthItem() =default;
+	~MonthItem() override { qDeleteAll(mGroups); }
 
-	virtual bool save();
+	bool save() override;
 
-	virtual ItemLevel level() const { return Month; }
+	ItemLevel level() const override { return Month; }
 
 	void setId(int id) { mId = id; }
-	virtual int id() const { return mId; }
+	int id() const override { return mId; }
 
-	virtual QString name() const;
-	virtual double value(const Column col) const;
+	QString name() const override;
+	double value(Column col) const override;
 
 	QString monthName() const;
 
@@ -61,27 +61,27 @@ public:
 
 private:
 	QList<GroupItem*> mGroups;
-	int mId;
-	int mYear;
-	int mMonth;
+	int mId{-1};
+	int mYear{-1};
+	int mMonth{-1};
 };
 
 class GroupItem : public WIMMItem
 {
 public:
-	GroupItem() : WIMMItem(), mId(-1), pMonth(0) {}
-	~GroupItem() { qDeleteAll(mCategories); }
+	GroupItem() = default;
+	~GroupItem() override { qDeleteAll(mCategories); }
 
-	virtual bool save();
+	bool save() override;
 
-	virtual ItemLevel level() const { return Group; }
-	virtual double value(Column col) const;
+	ItemLevel level() const override { return Group; }
+	double value(Column col) const override;
 
 	void setId(int id) { mId = id; }
-	virtual int id() const { return mId; }
+	int id() const override { return mId; }
 
 	void setName(const QString &name) { mName = name; }
-	virtual QString name() const { return mName; }
+	QString name() const override { return mName; }
 
 	void setMonth(MonthItem *value) { pMonth = value; }
 	MonthItem *month() const { return pMonth; }
@@ -90,9 +90,9 @@ public:
 	void addCategory(CategoryItem *category);
 
 private:
-	int mId;
+	int mId{-1};
 	QString mName;
-	MonthItem *pMonth;
+	MonthItem *pMonth{nullptr};
 	QList<CategoryItem *> mCategories;
 };
 
@@ -100,19 +100,19 @@ class CategoryItem : public WIMMItem
 {
 public:
 
-	CategoryItem() : WIMMItem(), mId(-1), mCategoryId(-1), pGroup(0) {}
-	~CategoryItem() {}
+	CategoryItem() = default;
+	~CategoryItem() override {}
 
-	virtual ItemLevel level() const { return Category; }
+	ItemLevel level() const override { return Category; }
 
-	virtual int id() const { return mId; }
+	int id() const override { return mId; }
 	void setId(int id) {mId = id;}
 
 	void setName(const QString &name) { mName = name; }
-	virtual QString name() const { return mName; }
+	QString name() const override { return mName; }
 
 	void setValue(Column col, double value);
-	virtual double value(Column col) const { return mValues[col]; }
+	double value(Column col) const override { return mValues[col]; }
 
 	void setComment(Column col, QString comment);
 	QString comment(Column col) const { return mComments[col]; }
@@ -123,13 +123,13 @@ public:
 	void setGroup(GroupItem *value) { pGroup = value; }
 	GroupItem *group() const { return pGroup; }
 
-	virtual bool save();
+	bool save() override;
 
 private:
-	int mId;
+	int mId{-1};
 	QString mName;
-	int mCategoryId;
-	GroupItem *pGroup;
+	int mCategoryId{-1};
+	GroupItem *pGroup{nullptr};
 	QMap<Column, QString> mComments;
 	QMap<Column, double> mValues;
 };

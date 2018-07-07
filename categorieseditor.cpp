@@ -52,7 +52,7 @@ void CategoriesEditor::fillGroups()
 	{
 		QSqlRecord rec = query.record();
 
-		QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeWidget);
+		auto *item = new QTreeWidgetItem(ui->treeWidget);
 		item->setText(0, rec.value("name").toString());
 		item->setData(0, IdRole, rec.value("id"));
 		item->setData(0, TypeRole, "group");
@@ -85,7 +85,7 @@ void CategoriesEditor::fillCategories(QTreeWidgetItem *groupItem)
 	{
 		QSqlRecord rec = query.record();
 
-		QTreeWidgetItem *item = new QTreeWidgetItem(groupItem);
+		auto *item = new QTreeWidgetItem(groupItem);
 		item->setText(0, rec.value("name").toString());
 		item->setData(0, IdRole, rec.value("id"));
 		item->setData(0, TypeRole, "category");
@@ -97,7 +97,7 @@ bool CategoriesEditor::saveGroups()
 {
 	for(int i = 0; i < ui->treeWidget->topLevelItemCount(); ++i)
 	{
-		QTreeWidgetItem *groupItem = ui->treeWidget->topLevelItem(i);
+		auto *groupItem = ui->treeWidget->topLevelItem(i);
 
 		QSqlQuery query = SqlTools::emptyQuery();
 
@@ -202,14 +202,14 @@ void CategoriesEditor::on_pbUp_clicked()
 {
 	QTreeWidgetItem *item = ui->treeWidget->currentItem();
 
-	if(!item)
+	if(item == nullptr)
 	{
 		return;
 	}
 
 	QTreeWidgetItem *parent = item->parent();
 
-	if(parent)
+	if(parent != nullptr)
 	{
 		int idx = parent->indexOfChild( item );
 		if(idx > 0)
@@ -237,13 +237,13 @@ void CategoriesEditor::on_pbDown_clicked()
 {
 	QTreeWidgetItem *item = ui->treeWidget->currentItem();
 
-	if(!item)
+	if(item == nullptr)
 	{
 		return;
 	}
 	QTreeWidgetItem *parent = item->parent();
 
-	if(parent)
+	if(parent != nullptr)
 	{
 		int idx = parent->indexOfChild( item );
 		if(idx < parent->childCount()-1 )
@@ -271,8 +271,8 @@ void CategoriesEditor::onContextMenuRequested(const QPoint &point)
 {
 	QTreeWidgetItem *item = ui->treeWidget->itemAt(point);
 
-	mAction["remove"]->setVisible( item );
-	mAction["add_category"]->setVisible( item );
+	mAction["remove"]->setVisible( item != nullptr);
+	mAction["add_category"]->setVisible( item != nullptr );
 
 	pMenu->exec( ui->treeWidget->mapToGlobal(point) );
 }
@@ -293,7 +293,7 @@ void CategoriesEditor::onAddCategory()
 		return;
 	}
 
-	QTreeWidgetItem *item = new QTreeWidgetItem(parent);
+	auto *item = new QTreeWidgetItem(parent);
 	item->setText(0, name);
 	item->setData(0, IdRole, -1);
 	item->setData(0, TypeRole, "category");
@@ -320,7 +320,7 @@ void CategoriesEditor::onAddGroup()
 		return;
 	}
 
-	QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeWidget);
+	auto *item = new QTreeWidgetItem(ui->treeWidget);
 	item->setText(0, name);
 	item->setData(0, IdRole, -1);
 	item->setData(0, TypeRole, "group");

@@ -11,7 +11,7 @@ const QString SqlTools::mConnectionName = "wimm";
 
 WIMMModel *SqlTools::loadModel()
 {
-	WIMMModel *model = new WIMMModel();
+	auto *model = new WIMMModel();
 	model->addMonths( loadMonths() );
 
 	return model;
@@ -33,7 +33,7 @@ QList<GroupItem *> SqlTools::loadSummary()
 	{
 		QSqlRecord rec = query.record();
 
-		GroupItem *group = new GroupItem;
+		auto *group = new GroupItem;
 		group->setId(rec.value("id").toInt());
 		group->setName(rec.value("name").toString());
 
@@ -66,7 +66,7 @@ QList<GroupItem *> SqlTools::loadSummary()
 		{
 			QSqlRecord moneyRec = moneyQuery.record();
 
-			CategoryItem *item = new CategoryItem;
+			auto *item = new CategoryItem;
 			item->setValue(WIMMItem::FirstIn, moneyRec.value("first_in").toDouble() );
 			item->setValue(WIMMItem::FirstOut, moneyRec.value("first_out").toDouble() );
 			item->setValue(WIMMItem::FirstEst, moneyRec.value("first_est").toDouble() );
@@ -109,10 +109,10 @@ MonthItem* SqlTools::addMonthRecord(int year, int month)
 
 	if(!execQuery(query))
 	{
-		return 0;
+		return nullptr;
 	}
 
-	MonthItem *item = new MonthItem;
+	auto *item = new MonthItem;
 	item->setId(query.lastInsertId().toInt());
 	item->setMonth(month);
 	item->setYear(year);
@@ -120,7 +120,7 @@ MonthItem* SqlTools::addMonthRecord(int year, int month)
 	if(!loadGroups(item))
 	{
 		delete item;
-		return 0;
+		return nullptr;
 	}
 
 	return item;
@@ -214,7 +214,7 @@ bool SqlTools::saveMoneyRecord(CategoryItem *md)
 	return ok;
 }
 
-int SqlTools::addCategoryRecord(QString name)
+int SqlTools::addCategoryRecord(const QString& name)
 {
 	QSqlQuery query = emptyQuery();
 	query.prepare("INSERT INTO categories (name) VALUES (:name)");
@@ -287,7 +287,7 @@ QList<MonthItem *> SqlTools::loadMonths()
 	{
 		QSqlRecord rec = query.record();
 
-		MonthItem *item = new MonthItem;
+		auto *item = new MonthItem;
 		item->setId( rec.value("id").toInt() );
 		item->setYear( rec.value("year").toInt() );
 		item->setMonth( rec.value("month").toInt() );
@@ -317,7 +317,7 @@ bool SqlTools::loadGroups(MonthItem *month)
 	while(query.next())
 	{
 		QSqlRecord rec = query.record();
-		GroupItem *item = new GroupItem;
+		auto *item = new GroupItem;
 		item->setId( rec.value("id").toInt() );
 		item->setName( rec.value("name").toString() );
 		month->addGroup( item );
@@ -326,7 +326,6 @@ bool SqlTools::loadGroups(MonthItem *month)
 		{
 			return false;
 		}
-
 	}
 
 	return true;
@@ -378,7 +377,7 @@ bool SqlTools::loadCategories(GroupItem *group)
 	{
 		QSqlRecord rec = query.record();
 
-		CategoryItem *item = new CategoryItem;
+		auto *item = new CategoryItem;
 		item->setId( rec.value("id").toInt() );
 		item->setCategoryId( rec.value("category_id").toInt() );
 		item->setName( rec.value("category_name").toString() );

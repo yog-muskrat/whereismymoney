@@ -1,14 +1,3 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-
-#include "tools.h"
-#include "structs.h"
-#include "sqltools.h"
-#include "wimmmodel.h"
-#include "addmonthdialog.h"
-#include "wimmfiltermodel.h"
-#include "categorieseditor.h"
-
 #include <QMenu>
 #include <QDate>
 #include <QDebug>
@@ -21,6 +10,20 @@
 #include <QCloseEvent>
 #include <QFontDialog>
 #include <QInputDialog>
+
+#include <cmath>
+#include <limits>
+
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+#include "tools.h"
+#include "structs.h"
+#include "sqltools.h"
+#include "wimmmodel.h"
+#include "addmonthdialog.h"
+#include "wimmfiltermodel.h"
+#include "categorieseditor.h"
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -153,7 +156,7 @@ void MainWindow::onSelectionChanged()
 void MainWindow::on_pbAddMonth_clicked()
 {
 	AddMonthDialog amd;
-	if(!amd.exec())
+	if(amd.exec() == 0)
 	{
 		return;
 	}
@@ -169,7 +172,7 @@ void MainWindow::on_pbAddMonth_clicked()
 
 	MonthItem *item = SqlTools::addMonthRecord(year, month);
 
-	if(!item)
+	if(item == nullptr)
 	{
 		return;
 	}
@@ -231,7 +234,7 @@ void MainWindow::fillTotalsTree()
 	ui->summaryTree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 	ui->summaryTree->header()->setSectionResizeMode(3, QHeaderView::Stretch);
 	QSettings set("mudbay", "wimm");
-	QFont f = set.value("font", qApp->font()).value<QFont>();
+	auto f = set.value("font", qApp->font()).value<QFont>();
 	f.setBold(true);
 	ui->summaryTree->headerItem()->setFont(0, f);
 	ui->summaryTree->headerItem()->setFont(1, f);
@@ -244,7 +247,7 @@ void MainWindow::fillTotalsTree()
 
 	f.setPointSize( f.pointSize() +1 );
 
-	QTreeWidgetItem *root = new QTreeWidgetItem(ui->summaryTree);
+	auto *root = new QTreeWidgetItem(ui->summaryTree);
 	root->setText(0, "Всего");
 	root->setData(0, Qt::UserRole, "root");
 	root->setData(0, Qt::UserRole+1, -1);
@@ -262,7 +265,7 @@ void MainWindow::fillTotalsTree()
 		int groupId = value.first;
 		QString groupName = value.second;
 
-		QTreeWidgetItem *groupTreeItem = new QTreeWidgetItem(root);
+		auto *groupTreeItem = new QTreeWidgetItem(root);
 		groupTreeItem->setText(0, groupName);
 		groupTreeItem->setData(0, Qt::UserRole, "group");
 		groupTreeItem->setData(0, Qt::UserRole +1 , groupId);
@@ -289,7 +292,7 @@ void MainWindow::fillTotalsTree()
 			int catId = value.first;
 			QString catName = value.second;
 
-			QTreeWidgetItem *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
+			auto *categoryTreeItem = new QTreeWidgetItem(groupTreeItem);
 			categoryTreeItem->setText(0, catName);
 			categoryTreeItem->setData(0, Qt::UserRole, "category");
 			categoryTreeItem->setData(0, Qt::UserRole +1 , catId);
@@ -417,7 +420,7 @@ void MainWindow::onAddMoney()
 
 	double money = QInputDialog::getDouble(this, "Добавить сумму", "Укажите добавляемую сумму");
 
-	if(money == 0)
+	if(std::fabs(money) <= std::numeric_limits<double>::epsilon())
 	{
 		return;
 	}
@@ -436,7 +439,8 @@ void MainWindow::closeEvent(QCloseEvent *e)
 			e->ignore();
 			return;
 		}
-		else if(btn == QMessageBox::Yes)
+
+		if(btn == QMessageBox::Yes)
 		{
 			onSave();
 			if(mDirty)
@@ -452,8 +456,8 @@ void MainWindow::closeEvent(QCloseEvent *e)
 	set.setValue("splitter", ui->splitter->saveState());
 	set.setValue("font", qApp->font());
 
-	QAction *act = ui->toolBar->findChild<QAction*>("summary");
-	if(act)
+	auto *act = ui->toolBar->findChild<QAction*>("summary");
+	if(act != nullptr)
 	{
 		set.setValue("summary", act->isChecked());
 	}
@@ -467,13 +471,13 @@ void MainWindow::showEvent(QShowEvent *e)
 	restoreGeometry( set.value("geometry").toByteArray());
 	ui->splitter->restoreState(set.value("splitter").toByteArray());
 
-	QAction *act = ui->toolBar->findChild<QAction*>("summary");
-	if(act)
+	auto *act = ui->toolBar->findChild<QAction*>("summary");
+	if(act != nullptr)
 	{
 		act->setChecked(set.value("summary", true).toBool());
 	}
 
-	QFont f = set.value("font", qApp->font()).value<QFont>();
+	auto f = set.value("font", qApp->font()).value<QFont>();
 	qApp->setFont(f);
 
 	QMainWindow::showEvent(e);
@@ -490,7 +494,7 @@ void MainWindow::createMenu()
 void MainWindow::on_action_categories_triggered()
 {
 	CategoriesEditor ed;
-	if(! ed.exec())
+	if(ed.exec() == 0)
 	{
 		return;
 	}
@@ -568,7 +572,8 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 			item->setSelected(true);
 			break;
 		}
-		else if(level == Category)
+
+		if(level == Category)
 		{
 			for(int j = 0; j < item->childCount(); j++)
 			{
@@ -589,8 +594,8 @@ void MainWindow::setDirty(bool dirty)
 {
 	mDirty = dirty;
 	setWindowModified(dirty);
-	QAction *act = ui->toolBar->findChild<QAction*>("save");
-	if(act)
+	auto *act = ui->toolBar->findChild<QAction*>("save");
+	if(act != nullptr)
 	{
 		act->setEnabled(dirty);
 	}

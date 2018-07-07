@@ -17,11 +17,11 @@ class CategoriesEditor : public QDialog
 	Q_OBJECT
 
 public:
-	explicit CategoriesEditor(QWidget *parent = 0);
-	~CategoriesEditor();
+	explicit CategoriesEditor(QWidget *parent = nullptr);
+	~CategoriesEditor() override;
 
 public slots:
-	 virtual void accept();
+	 void accept() override;
 
 private slots:
 	void on_pbUp_clicked();

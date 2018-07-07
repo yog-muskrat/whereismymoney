@@ -12,8 +12,8 @@ class AddMonthDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit AddMonthDialog(QWidget *parent = 0);
-	~AddMonthDialog();
+	explicit AddMonthDialog(QWidget *parent = nullptr);
+	~AddMonthDialog() override;
 
 	int year() const ;
 	int month() const;
@@ -21,7 +21,7 @@ public:
 	bool copyPreviousEst() const;
 
 private:
-	Ui::AddMonthDialog *ui;
+	Ui::AddMonthDialog *ui{nullptr};
 };
 
 #endif // ADDMONTHDIALOG_H

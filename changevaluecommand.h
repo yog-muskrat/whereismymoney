@@ -14,18 +14,18 @@ class ChangeValueCommand : public QUndoCommand
 public:
 	ChangeValueCommand(const QModelIndex &index, QVariant data, WIMMModel *model);
 
-	virtual void undo();
-	virtual void redo();
+	void undo() override;
+	void redo() override;
 
 private:
 	void notifyDataChanged();
 
-	WIMMModel *pModel;
+	WIMMModel *pModel{nullptr};
 	QVariant mOld;
 	QVariant mNew;
 	QPersistentModelIndex mIndex;
-	CategoryItem *pItem;
-	WIMMItem::Column mItemColumn;
+	CategoryItem *pItem{nullptr};
+	WIMMItem::Column mItemColumn{WIMMItem::Column::FirstIn};
 };
 
 #endif // CHANGEVALUECOMMAND_H

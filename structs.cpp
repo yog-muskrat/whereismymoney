@@ -27,7 +27,7 @@ QString MonthItem::name() const
 	return QString("%1 %0").arg( monthName() ).arg(mYear);
 }
 
-double MonthItem::value(const WIMMItem::Column col) const
+double MonthItem::value(Column col) const
 {
 	double result = 0;
 	foreach(GroupItem *item, mGroups)
@@ -95,7 +95,7 @@ void CategoryItem::setValue(WIMMItem::Column col, double value)
 
 void CategoryItem::setComment(WIMMItem::Column col, QString comment)
 {
-	mComments[col] = comment;
+	mComments[col] = std::move(comment);
 	setDirty(true);
 }
 

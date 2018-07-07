@@ -24,7 +24,7 @@ public:
 	static bool deleteMonthRecord(int id);
 
 	static bool saveMoneyRecord(CategoryItem *md);
-	static int addCategoryRecord(QString name);
+	static int addCategoryRecord(const QString& name);
 
 	static bool openDb();
 	static void closeDb();
@@ -44,7 +44,6 @@ public:
 	static QList<QPair<int, QString> > groupCategories(int groupId);
 private:
 	static QSqlDatabase db();
-
 
 	static const QString mConnectionName;
 };

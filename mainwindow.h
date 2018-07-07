@@ -20,7 +20,7 @@ class MainWindow : public QMainWindow
 
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
-	~MainWindow();
+	~MainWindow() override;
 
 private slots:
 	void onSelectionChanged();
@@ -47,13 +47,13 @@ private:
 	void createMenu();
 	void fillTotalsTree();
 
-	Ui::MainWindow *ui;
+	Ui::MainWindow *ui{nullptr};
 
-	WIMMModel *pModel;
-	WIMMFilterModel *pFilterModel;
-	QMenu *pMenu;
+	WIMMModel *pModel{nullptr};
+	WIMMFilterModel *pFilterModel{nullptr};
+	QMenu *pMenu{nullptr};
 	QMap<QString, QAction*> mActions;
-	bool mDirty;
+	bool mDirty{false};
 
 	QVariant mBuffer;
 };

@@ -6,7 +6,7 @@
 namespace Tools
 {
 	QString capitalize(const QString &string);
-	QString moneyString(const double amount);
+	QString moneyString(double amount);
 }
 
 #endif // TOOLS_H

@@ -11,7 +11,7 @@ WIMMFilterModel::WIMMFilterModel(QObject *parent) : QSortFilterProxyModel(parent
 
 void WIMMFilterModel::setMonthsFilter(QList<int> monthsIds)
 {
-	mMonths = monthsIds;
+	mMonths = std::move(monthsIds);
 	invalidateFilter();
 }
 
@@ -27,7 +27,7 @@ QVariant WIMMFilterModel::data(const QModelIndex &index, int role) const
 		QModelIndex src = mapToSource(index);
 		if(src.isValid() && !src.parent().isValid())
 		{
-			QColor color = src.data(role).value<QColor>();
+			auto color = src.data(role).value<QColor>();
 			return color.darker(110);
 		}
 	}
@@ -37,8 +37,8 @@ QVariant WIMMFilterModel::data(const QModelIndex &index, int role) const
 
 bool WIMMFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
 {
-	WIMMModel *model = qobject_cast<WIMMModel*>(sourceModel());
-	if(!model)
+	auto *model = qobject_cast<WIMMModel*>(sourceModel());
+	if(model == nullptr)
 	{
 		return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
 	}
